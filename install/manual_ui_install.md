@@ -63,9 +63,9 @@ issuerId, monto y fecha crudos -cada app consumidora hace su propio
 mapeo/formato antes de guardar. Usa SweetAlert2 (empaquetado como archivo
 propio del plugin, no via CDN externo) para el loader durante el eco y
 durante la espera/lectura del pago. Requiere que el navegador de la
-sucursal tenga deshabilitado
-chrome://flags/#block-insecure-private-network-requests y una extension
-tipo "Allow CORS", porque el terminal Bancard es HTTP plano y no manda
+sucursal tenga habilitados, para el sitio de la app (candado de la barra
+de direcciones -> Configuracion de sitios), los permisos "Red local" y
+"Contenido no seguro", porque el terminal Bancard es HTTP plano y no manda
 headers CORS. Compatible con APEX 20.1 en adelante.
 ```
 

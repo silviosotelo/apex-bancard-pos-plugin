@@ -54,12 +54,29 @@ de base de datos.
 ## Requisito obligatorio del navegador
 
 El terminal Bancard habla **HTTP plano** y no manda headers CORS. Si la app
-se sirve por HTTPS, el navegador bloquea el `fetch()` salvo que, una única
-vez por máquina de cobro:
+se sirve por HTTPS, el navegador bloquea el `fetch()` salvo que se habilite
+el sitio, una única vez por máquina de cobro.
+
+**Recomendado — permiso por sitio (no toca la configuración global del navegador):**
+
+1. Con la página de cobro abierta, click en el **candado** de la barra de
+   direcciones (ícono del certificado SSL).
+2. **Configuración de sitios** (Site settings).
+3. Habilitar **"Red local"** (Local network access) y **"Contenido no
+   seguro"** (Insecure content) para ese sitio.
+
+Esto es más seguro que las dos alternativas de abajo porque el permiso
+queda acotado a ese sitio puntual, no a todo el navegador — no hace falta
+instalar ninguna extensión de terceros ni bajar la guardia de Chrome contra
+cualquier otro sitio que visite esa máquina.
+
+**Alternativa (navegadores/versiones donde no aparece esa opción):**
 
 1. Ir a `chrome://flags/#block-insecure-private-network-requests` y
-   **deshabilitar** ese flag.
-2. Instalar una extensión de Chrome tipo **"Allow CORS"** y activarla.
+   **deshabilitar** ese flag (afecta a *todos* los sitios, no solo el tuyo).
+2. Instalar una extensión de Chrome tipo **"Allow CORS"** y activarla (esa
+   extensión, una vez activa, afecta a cualquier pestaña — desactivarla
+   cuando no se esté usando para cobrar).
 
 Si el plugin muestra un error de "No se pudo conectar al POS", **lo primero
 que hay que revisar es esto**, no el terminal. (Esto viene del protocolo del
@@ -286,14 +303,18 @@ python simulator/pos_simulator.py --port 3000 --delay-cliente 5-10 --random
 
 Ver [`simulator/README.md`](simulator/README.md) para la referencia
 completa de endpoints y flags. Para probar el plugin solo, sin ninguna app
-APEX: [`js/demo.html`](js/demo.html), un harness standalone que llama al
-plugin igual que lo haría una Dynamic Action real.
+APEX: [`js/demo.html`](js/demo.html) — dos paneles, formulario de
+configuración de la venta (monto, medio de pago, y los campos propios de
+cada medio: cuotas/plan, billetera, datos de QR PIX) a la izquierda, y un
+mock interactivo del terminal a la derecha que refleja en vivo cada llamada
+real del plugin al simulador (conectando, esperando pago, procesando,
+aprobada/rechazada) — no es una animación con tiempos fijos.
 
 ## Troubleshooting
 
 | Síntoma | Causa probable |
 |---|---|
-| `Failed to fetch` contra un terminal **real** | Falta configurar `chrome://flags` + extensión "Allow CORS" en esa máquina |
+| `Failed to fetch` contra un terminal **real** | Falta habilitar "Red local" + "Contenido no seguro" para el sitio (candado → Configuración de sitios) en esa máquina |
 | `Failed to fetch` contra el **simulador** | `--delay-cliente` muy cerca o por encima del timeout del plugin (90s) — bajar el rango del delay |
 | "El POS no respondió dentro del tiempo de espera" | Terminal apagado, IP/puerto mal configurados, o (contra el simulador) salió el resultado aleatorio de timeout con `--random` |
 | Items de configuración llegan vacíos a la acción del plugin | La acción "Execute Server-side Code" (pieza 1) está escrita con `g_x01`/`sys.htp.p` en vez de bind variables — ver la nota bajo la pieza 1. No tira error, simplemente no setea nada |

@@ -1,74 +1,492 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
 <meta charset="utf-8">
-<title>Demo plugin BANCARD.POS_CLIENTE - cobro tarjeta contado</title>
+<title>Demo — plugin BANCARD.POS_CLIENTE</title>
 <script src="vendor/sweetalert2.min.js"></script>
 <script src="pos_bancard_cliente.js"></script>
 <style>
-  body { font-family: 'Segoe UI', Arial, sans-serif; background: #F4F2F8; margin: 0; padding: 40px; }
-  .card { max-width: 640px; margin: 0 auto; background: #fff; border-radius: 10px; padding: 28px 32px; box-shadow: 0 4px 20px rgba(75,42,130,0.12); }
-  h1 { color: #4B2A82; font-size: 18px; margin-top: 0; }
-  .row { display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid #EEE; font-size: 13px; }
-  .row b { color: #38215F; }
-  .row span { color: #2A2438; font-family: Consolas, monospace; }
-  #btnCobrar { background: #2FBFAE; color: #fff; border: none; padding: 10px 22px; border-radius: 6px; font-size: 14px; cursor: pointer; margin-top: 18px; }
+  :root {
+    --bancard-blue: #0D4D8C;
+    --bancard-blue-dark: #073561;
+    --purple: #4B2A82;
+    --purple-dark: #38215F;
+    --teal: #2FBFAE;
+    --ok: #2E9E5B;
+    --err: #D14343;
+    --bg: #F4F2F8;
+    --text: #2A2438;
+    --muted: #6B6478;
+  }
+  * { box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--bg); margin: 0; padding: 32px; color: var(--text); }
+  h1 { color: var(--purple); font-size: 18px; margin: 0 0 4px; }
+  p.subtitle { color: var(--muted); font-size: 12.5px; margin: 0 0 24px; }
+
+  .layout { display: flex; gap: 28px; align-items: flex-start; flex-wrap: wrap; max-width: 980px; margin: 0 auto; }
+
+  /* ---- Panel izquierdo: configuracion ---- */
+  .config-card {
+    flex: 1 1 420px; max-width: 460px;
+    background: #fff; border-radius: 10px; padding: 24px 26px;
+    box-shadow: 0 4px 20px rgba(75,42,130,0.10);
+  }
+  .config-card h2 { font-size: 14px; color: var(--purple-dark); margin: 0 0 16px; display:flex; align-items:center; gap:8px; }
+  .config-card h2 .badge { background: var(--teal); color:#fff; font-size:10px; padding:2px 8px; border-radius:10px; font-weight:600; }
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 11.5px; font-weight: 600; color: var(--purple-dark); margin-bottom: 4px; }
+  .field input, .field select {
+    width: 100%; padding: 8px 10px; border: 1px solid #DCD5EE; border-radius: 6px;
+    font-size: 13px; font-family: inherit; color: var(--text); background: #fff;
+  }
+  .field input:focus, .field select:focus { outline: none; border-color: var(--teal); box-shadow: 0 0 0 3px rgba(47,191,174,0.15); }
+  .field-row { display: flex; gap: 10px; }
+  .field-row .field { flex: 1; }
+  .field small { display:block; color: var(--muted); font-size: 10.5px; margin-top: 3px; }
+  .conditional { border-left: 3px solid var(--teal); padding-left: 12px; margin: 12px 0; background: #FAFAFE; border-radius: 0 6px 6px 0; padding-top: 8px; padding-bottom: 2px; }
+
+  #btnCobrar {
+    width: 100%; background: var(--teal); color: #fff; border: none; padding: 12px 22px;
+    border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; margin-top: 6px;
+    transition: background .15s;
+  }
+  #btnCobrar:hover { background: #26A594; }
+  #btnCobrar:disabled { background: #C9C4D6; cursor: not-allowed; }
+
+  .resultado { margin-top: 18px; border-top: 1px solid #EEE; padding-top: 14px; }
+  .resultado h3 { font-size: 11.5px; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); margin: 0 0 8px; }
+  .row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #F3F1F8; font-size: 12px; }
+  .row b { color: var(--purple-dark); font-weight: 600; }
+  .row span { color: var(--text); font-family: Consolas, monospace; text-align: right; }
+
+  /* ---- Panel derecho: terminal POS ---- */
+  .pos-wrap { flex: 0 0 300px; display: flex; flex-direction: column; align-items: center; }
+  .pos-wrap h2 { font-size: 14px; color: var(--purple-dark); margin: 0 0 16px; }
+  .pos-shell {
+    width: 260px; height: 480px; background: #14171C; border-radius: 32px;
+    padding: 14px 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+    display: flex; flex-direction: column; position: relative;
+  }
+  .pos-shell::before {
+    content: ""; position: absolute; top: 6px; left: 50%; transform: translateX(-50%);
+    width: 50px; height: 5px; background: #333; border-radius: 3px;
+  }
+  .pos-screen {
+    flex: 1; background: #fff; border-radius: 18px; overflow: hidden;
+    display: flex; flex-direction: column; margin-top: 8px;
+  }
+  .pos-header {
+    background: var(--bancard-blue); color: #fff; padding: 8px 12px;
+    display: flex; align-items: center; justify-content: space-between; font-weight: 700; font-size: 15px;
+  }
+  .pos-header .menu { font-size: 14px; opacity: .85; }
+  .pos-subheader { background: var(--bancard-blue); color: #BFD9F2; font-size: 8px; padding: 0 12px 6px; display:flex; justify-content:space-between; }
+  .pos-body { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 14px; text-align: center; gap: 10px; }
+  .pos-amount {
+    background: #E9F1FA; color: var(--bancard-blue-dark); font-size: 12px; font-weight: 700;
+    padding: 5px 12px; border-radius: 14px; margin-bottom: 4px;
+  }
+  .pos-icon { font-size: 46px; line-height: 1; }
+  .pos-icon.spin { animation: posspin 1s linear infinite; }
+  @keyframes posspin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  .pos-instruction { font-size: 13px; font-weight: 600; color: #333; }
+  .pos-sub { font-size: 10.5px; color: var(--muted); }
+  .pos-status-ok { color: var(--ok); }
+  .pos-status-err { color: var(--err); }
+  .pos-details { font-size: 10px; color: var(--muted); font-family: Consolas, monospace; margin-top: 4px; line-height: 1.6; }
+  .pos-keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; width: 100%; margin-top: 8px; }
+  .pos-key { background: var(--bancard-blue); color: #fff; border-radius: 6px; padding: 8px 0; font-size: 12px; font-weight: 600; }
+  .pos-key.alt { background: #EEE; color: #999; }
+  .pos-footer-hint { font-size: 9.5px; color: #B9B3CC; margin-top: 12px; text-align: center; max-width: 260px; }
 </style>
 </head>
 <body>
-  <div class="card">
-    <h1>Demo &ndash; plugin BANCARD.POS_CLIENTE (cliente-side, standalone)</h1>
-    <div class="row"><b>Medio de pago</b><span id="lblMedio">TARJETA_CONTADO</span></div>
-    <div class="row"><b>Monto</b><span id="lblMonto">150000</span></div>
-    <div class="row"><b>Nro Boleta / Autorización</b><span id="out_boleta">&mdash;</span></div>
-    <div class="row"><b>Issuer ID (crudo)</b><span id="out_issuer">&mdash;</span></div>
-    <div class="row"><b>Monto Cobrado</b><span id="out_monto">&mdash;</span></div>
-    <div class="row"><b>Fecha/Hora (ISO 8601)</b><span id="out_fecha">&mdash;</span></div>
-    <div class="row"><b>Nro de Referencia</b><span id="out_ref">&mdash;</span></div>
-    <button id="btnCobrar" onclick="dispararCobro()">Cobrar con POS (JS directo)</button>
+
+<h1>Demo &mdash; plugin BANCARD.POS_CLIENTE</h1>
+<p class="subtitle">Harness standalone: llama al plugin exactamente como lo haría una Dynamic Action real de APEX, contra el simulador local (<code>simulator/pos_simulator.py</code>).</p>
+
+<div class="layout">
+
+  <!-- ============ PANEL IZQUIERDO: CONFIGURACION ============ -->
+  <div class="config-card">
+    <h2>Configuración de la venta <span class="badge">simula la página APEX</span></h2>
+
+    <div class="field-row">
+      <div class="field">
+        <label for="cfgIp">IP del POS</label>
+        <input type="text" id="cfgIp" value="127.0.0.1">
+      </div>
+      <div class="field">
+        <label for="cfgPuerto">Puerto</label>
+        <input type="text" id="cfgPuerto" value="3000">
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="cfgMedio">Medio de Pago</label>
+      <select id="cfgMedio" onchange="onMedioChange()">
+        <option value="TARJETA_CONTADO" selected>TARJETA_CONTADO</option>
+        <option value="TARJETA_CUOTAS">TARJETA_CUOTAS</option>
+        <option value="TARJETA_DEBITO">TARJETA_DEBITO</option>
+        <option value="TARJETA_CREDITO">TARJETA_CREDITO</option>
+        <option value="QR">QR</option>
+        <option value="QR_PIX">QR_PIX</option>
+        <option value="EXTRACCION_QR">EXTRACCION_QR</option>
+        <option value="CANJE">CANJE</option>
+        <option value="CANJE_QR">CANJE_QR</option>
+        <option value="BILLETERA">BILLETERA</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label for="cfgMonto">Monto (Gs.)</label>
+      <input type="text" id="cfgMonto" value="150.000" oninput="formatearMonto(this)">
+    </div>
+
+    <!-- Cuotas/Plan: TARJETA_CUOTAS / TARJETA_CREDITO -->
+    <div class="conditional" id="condCuotas" style="display:none">
+      <div class="field-row">
+        <div class="field">
+          <label for="cfgCuotas">Cuotas</label>
+          <input type="text" id="cfgCuotas" value="3">
+        </div>
+        <div class="field">
+          <label for="cfgPlan">Plan</label>
+          <input type="text" id="cfgPlan" value="1">
+        </div>
+      </div>
+    </div>
+
+    <!-- Monto vuelto: QR -->
+    <div class="conditional" id="condQr" style="display:none">
+      <div class="field">
+        <label for="cfgMontoVuelto">Monto Vuelto (opcional, Gs.)</label>
+        <input type="text" id="cfgMontoVuelto" value="0" oninput="formatearMonto(this)">
+      </div>
+    </div>
+
+    <!-- QR PIX -->
+    <div class="conditional" id="condPix" style="display:none">
+      <div class="field">
+        <label for="cfgPixCpf">CPF del pagador</label>
+        <input type="text" id="cfgPixCpf" value="123.456.789-00">
+      </div>
+      <div class="field">
+        <label for="cfgPixTelefono">Teléfono del pagador</label>
+        <input type="text" id="cfgPixTelefono" value="+55 11 91234-5678">
+      </div>
+    </div>
+
+    <!-- Billetera -->
+    <div class="conditional" id="condBilletera" style="display:none">
+      <div class="field">
+        <label for="cfgBilletera">Billetera</label>
+        <select id="cfgBilletera">
+          <option value="ZIM">ZIM &ndash; Zimple</option>
+          <option value="WPJ">WPJ &ndash; Paraguayo Japonesa</option>
+          <option value="VBV">VBV &ndash; Visión Banco</option>
+          <option value="BPI">BPI &ndash; Personal-Itaú</option>
+          <option value="BBF">BBF &ndash; Billetera Viru</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="cfgCuenta">Nro. de Cuenta</label>
+        <input type="text" id="cfgCuenta" value="123456">
+      </div>
+    </div>
+
+    <button id="btnCobrar" onclick="dispararCobro()">Cobrar con POS</button>
+
+    <div class="resultado">
+      <h3>Resultado (items destino del plugin)</h3>
+      <div class="row"><b>Nro Boleta / Autorización</b><span id="out_boleta">&mdash;</span></div>
+      <div class="row"><b>Issuer ID (crudo)</b><span id="out_issuer">&mdash;</span></div>
+      <div class="row"><b>Monto Cobrado</b><span id="out_monto">&mdash;</span></div>
+      <div class="row"><b>Fecha/Hora (ISO 8601)</b><span id="out_fecha">&mdash;</span></div>
+      <div class="row"><b>Nro de Referencia</b><span id="out_ref">&mdash;</span></div>
+    </div>
   </div>
 
-  <input id="P_IP" type="hidden" value="127.0.0.1">
-  <input id="P_PUERTO" type="hidden" value="3000">
-  <input id="P_MEDIO_PAGO" type="hidden" value="TARJETA_CONTADO">
-  <input id="P_MONTO" type="hidden" value="150000">
-  <input id="P_OPCIONES" type="hidden" value="">
-  <input id="P_NRO_BOLETA" type="hidden" value="">
-  <input id="P_ISSUER_ID" type="hidden" value="">
-  <input id="P_MONTO_COBRADO" type="hidden" value="">
-  <input id="P_FECHA_HORA" type="hidden" value="">
-  <input id="P_FACTURA_REF" type="hidden" value="">
-  <input id="P_RESULTADO_JSON" type="hidden" value="">
+  <!-- ============ PANEL DERECHO: TERMINAL POS (interactivo) ============ -->
+  <div class="pos-wrap">
+    <h2>Terminal POS (simulado)</h2>
+    <div class="pos-shell">
+      <div class="pos-screen">
+        <div class="pos-header"><span>&#9776; Bancard</span><span class="menu">&#8964;</span></div>
+        <div class="pos-subheader"><span>V2.6.4.1</span><span id="posSerial">P12-4147</span></div>
+        <div class="pos-body" id="posBody"></div>
+      </div>
+    </div>
+    <p class="pos-footer-hint">Este panel refleja en vivo, paso a paso, las llamadas reales que el plugin hace al simulador (<code>/pos/eco</code>, <code>/pos/venta-*</code>, <code>/pos/descuento</code>) &mdash; no es una animación pregrabada.</p>
+  </div>
 
-  <script>
-    window.apex = {
-      item: function (id) {
-        var el = document.getElementById(id);
-        return {
-          getValue: function () { return el.value; },
-          setValue: function (v) {
-            el.value = v;
-            var out = document.getElementById('out_' + { P_NRO_BOLETA:'boleta', P_ISSUER_ID:'issuer', P_MONTO_COBRADO:'monto', P_FECHA_HORA:'fecha', P_FACTURA_REF:'ref' }[id]);
-            if (out) out.textContent = v;
-          }
-        };
-      },
-      message: {
-        clearErrors: function () {},
-        showErrors: function (errs) { console.log('[apex.message.showErrors]', JSON.stringify(errs)); }
-      }
-    };
+</div>
 
-    function dispararCobro() {
-      bancardPosCliente.execute({
-        action: {
-          attribute01: 'P_IP', attribute02: 'P_PUERTO', attribute03: 'P_MEDIO_PAGO',
-          attribute04: 'P_MONTO', attribute05: 'P_OPCIONES',
-          attribute06: 'P_NRO_BOLETA', attribute07: 'P_ISSUER_ID', attribute08: 'P_MONTO_COBRADO',
-          attribute09: 'P_FECHA_HORA', attribute10: 'P_FACTURA_REF', attribute11: 'P_RESULTADO_JSON'
+<!-- items ocultos que consume el plugin, igual que en una pagina APEX real -->
+<input id="P_IP" type="hidden" value="127.0.0.1">
+<input id="P_PUERTO" type="hidden" value="3000">
+<input id="P_MEDIO_PAGO" type="hidden" value="TARJETA_CONTADO">
+<input id="P_MONTO" type="hidden" value="150000">
+<input id="P_OPCIONES" type="hidden" value="">
+<input id="P_NRO_BOLETA" type="hidden" value="">
+<input id="P_ISSUER_ID" type="hidden" value="">
+<input id="P_MONTO_COBRADO" type="hidden" value="">
+<input id="P_FECHA_HORA" type="hidden" value="">
+<input id="P_FACTURA_REF" type="hidden" value="">
+<input id="P_RESULTADO_JSON" type="hidden" value="">
+
+<script>
+  // ---------------------------------------------------------------
+  // Shim de apex.item / apex.message, igual que dentro de una pagina
+  // APEX real -- el plugin no sabe que esto no es APEX de verdad.
+  // ---------------------------------------------------------------
+  window.apex = {
+    item: function (id) {
+      var el = document.getElementById(id);
+      return {
+        getValue: function () { return el.value; },
+        setValue: function (v) {
+          el.value = v;
+          var out = document.getElementById('out_' + { P_NRO_BOLETA:'boleta', P_ISSUER_ID:'issuer', P_MONTO_COBRADO:'monto', P_FECHA_HORA:'fecha', P_FACTURA_REF:'ref' }[id]);
+          if (out) out.textContent = v;
         }
+      };
+    },
+    message: {
+      clearErrors: function () {},
+      showErrors: function (errs) { console.log('[apex.message.showErrors]', JSON.stringify(errs)); }
+    }
+  };
+
+  // ---------------------------------------------------------------
+  // Formulario izquierdo: mostrar/ocultar campos segun Medio de Pago,
+  // formatear Monto con separador de miles al tipear (igual que un
+  // Number Field de APEX con mascara 999G999G999G999G999G999G990).
+  // ---------------------------------------------------------------
+  function formatearMonto(input) {
+    var soloDigitos = input.value.replace(/\D/g, '');
+    input.value = soloDigitos ? Number(soloDigitos).toLocaleString('es-PY') : '';
+  }
+
+  function onMedioChange() {
+    var medio = document.getElementById('cfgMedio').value;
+    document.getElementById('condCuotas').style.display = (medio === 'TARJETA_CUOTAS' || medio === 'TARJETA_CREDITO') ? 'block' : 'none';
+    document.getElementById('condQr').style.display = (medio === 'QR') ? 'block' : 'none';
+    document.getElementById('condPix').style.display = (medio === 'QR_PIX') ? 'block' : 'none';
+    document.getElementById('condBilletera').style.display = (medio === 'BILLETERA') ? 'block' : 'none';
+  }
+
+  function numeroPlano(v) {
+    return (v || '0').toString().replace(/\D/g, '') || '0';
+  }
+
+  function armarOpciones(medio) {
+    if (medio === 'TARJETA_CUOTAS' || medio === 'TARJETA_CREDITO') {
+      return JSON.stringify({
+        cuotas: parseInt(document.getElementById('cfgCuotas').value, 10) || 0,
+        plan: parseInt(document.getElementById('cfgPlan').value, 10) || 0
       });
     }
-  </script>
+    if (medio === 'QR') {
+      var vuelto = parseInt(numeroPlano(document.getElementById('cfgMontoVuelto').value), 10) || 0;
+      return vuelto > 0 ? JSON.stringify({ montoVuelto: vuelto }) : '';
+    }
+    if (medio === 'QR_PIX') {
+      return JSON.stringify({
+        pix_payer_cpf: document.getElementById('cfgPixCpf').value,
+        pix_payer_phone: document.getElementById('cfgPixTelefono').value
+      });
+    }
+    if (medio === 'BILLETERA') {
+      return JSON.stringify({
+        billetera: document.getElementById('cfgBilletera').value,
+        cuenta: document.getElementById('cfgCuenta').value
+      });
+    }
+    return '';
+  }
+
+  function dispararCobro() {
+    var medio = document.getElementById('cfgMedio').value;
+    var monto = numeroPlano(document.getElementById('cfgMonto').value);
+
+    apex.item('P_IP').setValue(document.getElementById('cfgIp').value);
+    apex.item('P_PUERTO').setValue(document.getElementById('cfgPuerto').value);
+    apex.item('P_MEDIO_PAGO').setValue(medio);
+    apex.item('P_MONTO').setValue(monto);
+    apex.item('P_OPCIONES').setValue(armarOpciones(medio));
+
+    // limpiar resultado anterior
+    ['out_boleta', 'out_issuer', 'out_monto', 'out_fecha', 'out_ref'].forEach(function (id) {
+      document.getElementById(id).textContent = '—';
+    });
+
+    document.getElementById('btnCobrar').disabled = true;
+    posSetIdle();
+
+    bancardPosCliente.execute({
+      action: {
+        attribute01: 'P_IP', attribute02: 'P_PUERTO', attribute03: 'P_MEDIO_PAGO',
+        attribute04: 'P_MONTO', attribute05: 'P_OPCIONES',
+        attribute06: 'P_NRO_BOLETA', attribute07: 'P_ISSUER_ID', attribute08: 'P_MONTO_COBRADO',
+        attribute09: 'P_FECHA_HORA', attribute10: 'P_FACTURA_REF', attribute11: 'P_RESULTADO_JSON'
+      }
+    });
+  }
+
+  // ---------------------------------------------------------------
+  // Terminal POS simulado (panel derecho): se maneja envolviendo
+  // window.fetch para observar, en vivo, las llamadas reales que el
+  // plugin hace al simulador -- no es una animacion con tiempos fijos,
+  // sigue el timing real (incluido --delay-cliente del simulador).
+  // ---------------------------------------------------------------
+  var posBody = document.getElementById('posBody');
+  var posSerial = document.getElementById('posSerial');
+  var posResetTimer = null;
+
+  function posRender(html) {
+    posBody.innerHTML = html;
+  }
+
+  function posSetIdle() {
+    clearTimeout(posResetTimer);
+    posSerial.textContent = 'P12-4147';
+    posRender(
+      '<div class="pos-icon">&#128179;</div>' +
+      '<div class="pos-instruction">Bancard</div>' +
+      '<div class="pos-sub">Esperando operación&hellip;</div>' +
+      '<div class="pos-keypad">' +
+        ['1','2','3','4','5','6','7','8','9','&larr;','0','000'].map(function (k) {
+          return '<div class="pos-key' + (k === '&larr;' ? ' alt' : '') + '">' + k + '</div>';
+        }).join('') +
+      '</div>'
+    );
+  }
+
+  function posMontoPill() {
+    var monto = document.getElementById('cfgMonto').value || '0';
+    return '<div class="pos-amount">Monto compra: Gs. ' + monto + '</div>';
+  }
+
+  function posSetConectando() {
+    posRender(
+      posMontoPill() +
+      '<div class="pos-icon spin">&#8635;</div>' +
+      '<div class="pos-instruction">Conectando&hellip;</div>' +
+      '<div class="pos-sub">Verificando terminal (eco)</div>'
+    );
+  }
+
+  var ICONOS_MEDIO = {
+    card: { icon: '&#128179;', texto: 'Pase o inserte la tarjeta', sub: 'Siga las instrucciones en pantalla' },
+    qr: { icon: '&#9638;', texto: 'Escanee el código QR', sub: 'Use la app de su banco o billetera' },
+    billetera: { icon: '&#128241;', texto: 'Confirme el pago', sub: 'Apruebe la operación en su billetera electrónica' },
+    canje: { icon: '&#127903;', texto: 'Presente su tarjeta de puntos', sub: 'Canje de puntos de lealtad' }
+  };
+
+  function posSetEsperando(tipo) {
+    var info = ICONOS_MEDIO[tipo] || ICONOS_MEDIO.card;
+    posRender(
+      posMontoPill() +
+      '<div class="pos-icon">' + info.icon + '</div>' +
+      '<div class="pos-instruction">' + info.texto + '</div>' +
+      '<div class="pos-sub">' + info.sub + '</div>'
+    );
+  }
+
+  function posSetProcesando() {
+    posRender(
+      posMontoPill() +
+      '<div class="pos-icon spin">&#8635;</div>' +
+      '<div class="pos-instruction">Procesando&hellip;</div>' +
+      '<div class="pos-sub">No retire la tarjeta</div>'
+    );
+  }
+
+  function posSetAprobada(body) {
+    var detalle = [
+      body.nombreTarjeta || body.issuerId || '',
+      body.nroBoleta ? ('Boleta ' + body.nroBoleta) : '',
+      body.codigoAutorizacion ? ('Aut. ' + body.codigoAutorizacion) : ''
+    ].filter(Boolean).join('<br>');
+    posRender(
+      posMontoPill() +
+      '<div class="pos-icon pos-status-ok">&#10003;</div>' +
+      '<div class="pos-instruction pos-status-ok">APROBADA</div>' +
+      '<div class="pos-details">' + detalle + '</div>'
+    );
+    posScheduleReset();
+  }
+
+  function posSetRechazada(mensaje) {
+    posRender(
+      posMontoPill() +
+      '<div class="pos-icon pos-status-err">&#10007;</div>' +
+      '<div class="pos-instruction pos-status-err">RECHAZADA</div>' +
+      '<div class="pos-sub">' + (mensaje || 'Operación rechazada') + '</div>'
+    );
+    posScheduleReset();
+  }
+
+  function posSetSinRespuesta() {
+    posRender(
+      '<div class="pos-icon pos-status-err">&#9888;</div>' +
+      '<div class="pos-instruction pos-status-err">Sin respuesta</div>' +
+      '<div class="pos-sub">El terminal no respondió a tiempo</div>'
+    );
+    posScheduleReset();
+  }
+
+  function posScheduleReset() {
+    document.getElementById('btnCobrar').disabled = false;
+    clearTimeout(posResetTimer);
+    posResetTimer = setTimeout(posSetIdle, 4500);
+  }
+
+  function faseDeRuta(pathname) {
+    if (pathname.endsWith('/pos/eco')) return { fase: 'conectando' };
+    if (pathname.endsWith('/pos/descuento')) return { fase: 'procesando' };
+    if (pathname.endsWith('/pos/venta-ux') || pathname.endsWith('/pos/venta/debito') || pathname.endsWith('/pos/venta/credito')) return { fase: 'esperando', tipo: 'card', dosPasos: true };
+    if (pathname.endsWith('/pos/venta-qr') || pathname.endsWith('/pos/venta-qr-pix')) return { fase: 'esperando', tipo: 'qr', dosPasos: false };
+    if (pathname.endsWith('/pos/extraccion-qr')) return { fase: 'esperando', tipo: 'qr', dosPasos: false };
+    if (pathname.endsWith('/pos/venta-canje-qr')) return { fase: 'esperando', tipo: 'qr', dosPasos: false };
+    if (pathname.endsWith('/pos/venta-canje')) return { fase: 'esperando', tipo: 'canje', dosPasos: false };
+    if (pathname.endsWith('/pos/venta-billetera')) return { fase: 'esperando', tipo: 'billetera', dosPasos: false };
+    return null;
+  }
+
+  var origFetch = window.fetch;
+  window.fetch = function (url, opts) {
+    var pathname;
+    try { pathname = new URL(url, location.href).pathname; } catch (e) { pathname = String(url); }
+    var info = faseDeRuta(pathname);
+
+    if (info) {
+      if (info.fase === 'conectando') posSetConectando();
+      else if (info.fase === 'procesando') posSetProcesando();
+      else if (info.fase === 'esperando') posSetEsperando(info.tipo);
+    }
+
+    return origFetch.apply(this, arguments).then(function (resp) {
+      if (info && (info.fase === 'procesando' || (info.fase === 'esperando' && !info.dosPasos))) {
+        resp.clone().json().then(function (body) {
+          if (resp.status === 200) posSetAprobada(body);
+          else posSetRechazada(body && body.message);
+        }).catch(function () {});
+      } else if (info && info.fase === 'esperando' && info.dosPasos && resp.status !== 200) {
+        resp.clone().json().then(function (body) {
+          posSetRechazada(body && body.message);
+        }).catch(function () {});
+      }
+      return resp;
+    }).catch(function (err) {
+      if (info) posSetSinRespuesta();
+      throw err;
+    });
+  };
+
+  onMedioChange();
+  posSetIdle();
+</script>
 </body>
 </html>

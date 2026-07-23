@@ -244,7 +244,15 @@
   </div>
 
   <div class="callout warn">
-    <strong>Requisito obligatorio del navegador (solo contra un terminal real).</strong> El terminal Bancard habla HTTP plano y no manda headers CORS. Si la app se sirve por HTTPS, el navegador bloquea el <code>fetch()</code> salvo que, una única vez por máquina de cobro: (1) se deshabilite <code>chrome://flags/#block-insecure-private-network-requests</code>, y (2) se instale y active una extensión tipo "Allow CORS". <strong>No hace falta contra el simulador incluido</strong> (sección 5): ya responde los headers CORS correctos.
+    <strong>Requisito obligatorio del navegador (solo contra un terminal real).</strong> El terminal Bancard habla HTTP plano y no manda headers CORS. Si la app se sirve por HTTPS, el navegador bloquea el <code>fetch()</code> salvo que se habilite el sitio, una única vez por máquina de cobro. <strong>No hace falta contra el simulador incluido</strong> (sección 5): ya responde los headers CORS correctos.
+  </div>
+
+  <div class="callout">
+    <strong>Recomendado &mdash; permiso por sitio:</strong> click en el candado de la barra de direcciones &rarr; <strong>Configuración de sitios</strong> &rarr; habilitar <strong>"Red local"</strong> y <strong>"Contenido no seguro"</strong> para ese sitio. Más seguro que las alternativas de abajo porque el permiso queda acotado a ese sitio puntual, no a todo el navegador.
+  </div>
+
+  <div class="callout warn">
+    <strong>Alternativa</strong> (si esa opción no aparece en tu versión de Chrome): (1) deshabilitar <code>chrome://flags/#block-insecure-private-network-requests</code> (afecta a <em>todos</em> los sitios), o (2) instalar y activar una extensión tipo "Allow CORS" (afecta a cualquier pestaña mientras esté activa).
   </div>
 </div>
 
@@ -412,7 +420,7 @@ apex.item('MI_ITEM_MARCA_TARJETA').setValue(marcaPropia);
     <strong>Ojo con el margen entre el delay simulado y el timeout del plugin.</strong> El timeout de operación del plugin es de 90 segundos. Si el máximo de <code>--delay-cliente</code> está cerca o por encima de eso, el navegador puede reportar <code>Failed to fetch</code> en vez de completar la prueba &mdash; dejar el rango bien por debajo del timeout.
   </div>
 
-  <p class="muted">Referencia completa de endpoints y flags: <code>simulator/README.md</code>. Para probar el plugin solo, sin ninguna app APEX: <code>js/demo.html</code>.</p>
+  <p class="muted">Referencia completa de endpoints y flags: <code>simulator/README.md</code>. Para probar el plugin solo, sin ninguna app APEX: <code>js/demo.html</code> &mdash; formulario de configuración a la izquierda, mock interactivo del terminal a la derecha, reflejando en vivo cada llamada real al simulador.</p>
 </div>
 
 <!-- 6. TROUBLESHOOTING -->
@@ -421,7 +429,7 @@ apex.item('MI_ITEM_MARCA_TARJETA').setValue(marcaPropia);
 
   <table>
     <tr><th>Síntoma</th><th>Causa probable</th></tr>
-    <tr><td><code>Failed to fetch</code> contra un terminal <strong>real</strong></td><td>Falta configurar <code>chrome://flags</code> + extensión "Allow CORS" en esa máquina.</td></tr>
+    <tr><td><code>Failed to fetch</code> contra un terminal <strong>real</strong></td><td>Falta habilitar "Red local" + "Contenido no seguro" para el sitio (candado &rarr; Configuración de sitios) en esa máquina.</td></tr>
     <tr><td><code>Failed to fetch</code> contra el <strong>simulador</strong></td><td><code>--delay-cliente</code> muy cerca del timeout del plugin (90s) &mdash; bajar el rango del delay.</td></tr>
     <tr><td>"El POS no respondió dentro del tiempo de espera"</td><td>Terminal apagado, IP/puerto mal configurados, o (contra el simulador) salió el resultado aleatorio de timeout con <code>--random</code>.</td></tr>
     <tr><td>Items de configuración llegan vacíos a la acción del plugin</td><td>"Execute Server-side Code" (pieza 1) escrita con <code>g_x01</code>/<code>sys.htp.p</code> en vez de bind variables &mdash; ver sección 3. No tira error, simplemente no setea nada.</td></tr>
