@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="vendor/sweetalert2.min.js"></script>
+  <script src="pos_bancard_cliente.js"></script>
+</head>
+<body>
+  <input id="P_IP" value="127.0.0.1">
+  <input id="P_PUERTO" value="3901">
+  <input id="P_MEDIO_PAGO" value="TARJETA_CONTADO">
+  <input id="P_MONTO" value="150000">
+  <input id="P_OPCIONES" value="">
+  <input id="P_NRO_BOLETA" value="">
+  <input id="P_ISSUER_ID" value="">
+  <input id="P_MONTO_COBRADO" value="">
+  <input id="P_FECHA_HORA" value="">
+  <input id="P_FACTURA_REF" value="">
+  <input id="P_RESULTADO_JSON" value="">
+  <script>
+    window.apex = {
+      item: function (id) {
+        var el = document.getElementById(id);
+        return {
+          getValue: function () { return el.value; },
+          setValue: function (v) { el.value = v; }
+        };
+      },
+      message: {
+        clearErrors: function () {},
+        showErrors: function (errs) { console.log('[apex.message.showErrors]', JSON.stringify(errs)); }
+      }
+    };
+
+    function pThisPara(medio, opciones) {
+      document.getElementById('P_MEDIO_PAGO').value = medio;
+      document.getElementById('P_OPCIONES').value = opciones ? JSON.stringify(opciones) : '';
+      ['P_NRO_BOLETA','P_ISSUER_ID','P_MONTO_COBRADO','P_FECHA_HORA','P_FACTURA_REF','P_RESULTADO_JSON'].forEach(function(id){
+        document.getElementById(id).value = '';
+      });
+      return {
+        action: {
+          attribute01: 'P_IP', attribute02: 'P_PUERTO', attribute03: 'P_MEDIO_PAGO',
+          attribute04: 'P_MONTO', attribute05: 'P_OPCIONES',
+          attribute06: 'P_NRO_BOLETA', attribute07: 'P_ISSUER_ID', attribute08: 'P_MONTO_COBRADO',
+          attribute09: 'P_FECHA_HORA', attribute10: 'P_FACTURA_REF', attribute11: 'P_RESULTADO_JSON'
+        }
+      };
+    }
+
+    function volcarResultado(etiqueta) {
+      console.log('RESULTADO_' + etiqueta, JSON.stringify({
+        nroBoleta: document.getElementById('P_NRO_BOLETA').value,
+        issuerId: document.getElementById('P_ISSUER_ID').value,
+        montoCobrado: document.getElementById('P_MONTO_COBRADO').value,
+        fechaHora: document.getElementById('P_FECHA_HORA').value,
+        facturaRef: document.getElementById('P_FACTURA_REF').value
+      }));
+    }
+
+    async function correrPruebas() {
+      bancardPosCliente.execute(pThisPara('TARJETA_CONTADO'));
+      await new Promise(function (r) { setTimeout(r, 1500); });
+      volcarResultado('TARJETA_CONTADO');
+
+      bancardPosCliente.execute(pThisPara('QR', { montoVuelto: 5000 }));
+      await new Promise(function (r) { setTimeout(r, 1500); });
+      volcarResultado('QR');
+
+      bancardPosCliente.execute(pThisPara('BILLETERA', { billetera: 'ZIM', cuenta: '123456' }));
+      await new Promise(function (r) { setTimeout(r, 1500); });
+      volcarResultado('BILLETERA');
+
+      // Caso de error: billetera invalida
+      bancardPosCliente.execute(pThisPara('BILLETERA', { billetera: 'NOEXISTE', cuenta: '1' }));
+      await new Promise(function (r) { setTimeout(r, 1500); });
+      volcarResultado('BILLETERA_ERROR');
+    }
+    correrPruebas();
+  </script>
+</body>
+</html>

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Demo plugin BANCARD.POS_CLIENTE - cobro tarjeta contado</title>
+<script src="vendor/sweetalert2.min.js"></script>
+<script src="pos_bancard_cliente.js"></script>
+<style>
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #F4F2F8; margin: 0; padding: 40px; }
+  .card { max-width: 640px; margin: 0 auto; background: #fff; border-radius: 10px; padding: 28px 32px; box-shadow: 0 4px 20px rgba(75,42,130,0.12); }
+  h1 { color: #4B2A82; font-size: 18px; margin-top: 0; }
+  .row { display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid #EEE; font-size: 13px; }
+  .row b { color: #38215F; }
+  .row span { color: #2A2438; font-family: Consolas, monospace; }
+  #btnCobrar { background: #2FBFAE; color: #fff; border: none; padding: 10px 22px; border-radius: 6px; font-size: 14px; cursor: pointer; margin-top: 18px; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <h1>Demo &ndash; plugin BANCARD.POS_CLIENTE (cliente-side, standalone)</h1>
+    <div class="row"><b>Medio de pago</b><span id="lblMedio">TARJETA_CONTADO</span></div>
+    <div class="row"><b>Monto</b><span id="lblMonto">150000</span></div>
+    <div class="row"><b>Nro Boleta / Autorización</b><span id="out_boleta">&mdash;</span></div>
+    <div class="row"><b>Issuer ID (crudo)</b><span id="out_issuer">&mdash;</span></div>
+    <div class="row"><b>Monto Cobrado</b><span id="out_monto">&mdash;</span></div>
+    <div class="row"><b>Fecha/Hora (ISO 8601)</b><span id="out_fecha">&mdash;</span></div>
+    <div class="row"><b>Nro de Referencia</b><span id="out_ref">&mdash;</span></div>
+    <button id="btnCobrar" onclick="dispararCobro()">Cobrar con POS (JS directo)</button>
+  </div>
+
+  <input id="P_IP" type="hidden" value="127.0.0.1">
+  <input id="P_PUERTO" type="hidden" value="3000">
+  <input id="P_MEDIO_PAGO" type="hidden" value="TARJETA_CONTADO">
+  <input id="P_MONTO" type="hidden" value="150000">
+  <input id="P_OPCIONES" type="hidden" value="">
+  <input id="P_NRO_BOLETA" type="hidden" value="">
+  <input id="P_ISSUER_ID" type="hidden" value="">
+  <input id="P_MONTO_COBRADO" type="hidden" value="">
+  <input id="P_FECHA_HORA" type="hidden" value="">
+  <input id="P_FACTURA_REF" type="hidden" value="">
+  <input id="P_RESULTADO_JSON" type="hidden" value="">
+
+  <script>
+    window.apex = {
+      item: function (id) {
+        var el = document.getElementById(id);
+        return {
+          getValue: function () { return el.value; },
+          setValue: function (v) {
+            el.value = v;
+            var out = document.getElementById('out_' + { P_NRO_BOLETA:'boleta', P_ISSUER_ID:'issuer', P_MONTO_COBRADO:'monto', P_FECHA_HORA:'fecha', P_FACTURA_REF:'ref' }[id]);
+            if (out) out.textContent = v;
+          }
+        };
+      },
+      message: {
+        clearErrors: function () {},
+        showErrors: function (errs) { console.log('[apex.message.showErrors]', JSON.stringify(errs)); }
+      }
+    };
+
+    function dispararCobro() {
+      bancardPosCliente.execute({
+        action: {
+          attribute01: 'P_IP', attribute02: 'P_PUERTO', attribute03: 'P_MEDIO_PAGO',
+          attribute04: 'P_MONTO', attribute05: 'P_OPCIONES',
+          attribute06: 'P_NRO_BOLETA', attribute07: 'P_ISSUER_ID', attribute08: 'P_MONTO_COBRADO',
+          attribute09: 'P_FECHA_HORA', attribute10: 'P_FACTURA_REF', attribute11: 'P_RESULTADO_JSON'
+        }
+      });
+    }
+  </script>
+</body>
+</html>

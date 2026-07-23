@@ -1,0 +1,450 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>apex-bancard-pos-plugin - Integration Guide</title>
+<style>
+  :root {
+    --c-primary: #2B4C7E;
+    --c-primary-dark: #1E3A5F;
+    --c-accent: #2FA88A;
+    --c-bg: #F5F6F8;
+    --c-text: #24262B;
+    --c-muted: #666B75;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    color: var(--c-text);
+    margin: 0;
+    background: #fff;
+    font-size: 13px;
+    line-height: 1.55;
+  }
+  .cover {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background: linear-gradient(160deg, var(--c-primary) 0%, var(--c-primary-dark) 60%, #14202E 100%);
+    color: #fff;
+    text-align: center;
+    page-break-after: always;
+    position: relative;
+    overflow: hidden;
+  }
+  .cover::before {
+    content: "";
+    position: absolute;
+    top: -120px; right: -120px;
+    width: 420px; height: 420px;
+    border-radius: 50%;
+    background: rgba(47,168,138,0.18);
+  }
+  .cover::after {
+    content: "";
+    position: absolute;
+    bottom: -160px; left: -100px;
+    width: 380px; height: 380px;
+    border-radius: 50%;
+    background: rgba(47,168,138,0.10);
+  }
+  .cover .logo-mark {
+    width: 72px; height: 72px;
+    margin-bottom: 22px;
+    position: relative;
+    z-index: 1;
+  }
+  .cover .brand {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    font-family: 'Consolas', monospace;
+    color: var(--c-accent);
+    position: relative;
+    z-index: 1;
+  }
+  .cover h1 {
+    font-size: 28px;
+    max-width: 640px;
+    margin: 18px 0 8px;
+    font-weight: 700;
+    position: relative;
+    z-index: 1;
+  }
+  .cover .subtitle {
+    font-size: 15px;
+    color: #C9D3E0;
+    max-width: 560px;
+    position: relative;
+    z-index: 1;
+  }
+  .cover .tag {
+    margin-top: 46px;
+    display: inline-flex;
+    gap: 10px;
+    position: relative;
+    z-index: 1;
+  }
+  .cover .tag span {
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.25);
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 11.5px;
+    letter-spacing: 0.5px;
+  }
+  .cover .footer-note {
+    position: absolute;
+    bottom: 34px;
+    font-size: 11px;
+    color: #97A3B5;
+    z-index: 1;
+  }
+
+  .page { padding: 38px 46px 20px; page-break-after: always; }
+  .page:last-child { page-break-after: auto; }
+
+  h2.section-title {
+    display: flex; align-items: center; gap: 12px;
+    font-size: 19px;
+    color: var(--c-primary);
+    border-bottom: 3px solid var(--c-accent);
+    padding-bottom: 10px;
+    margin: 0 0 18px;
+  }
+  h2.section-title .num {
+    background: var(--c-primary);
+    color: #fff;
+    width: 30px; height: 30px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 700;
+    flex-shrink: 0;
+  }
+  h3 { color: var(--c-primary-dark); font-size: 14.5px; margin: 22px 0 8px; }
+  p { margin: 8px 0; }
+  .muted { color: var(--c-muted); }
+  code, .mono { font-family: 'Consolas', monospace; font-size: 12px; background: #EEF1F5; padding: 1px 5px; border-radius: 4px; color: #1E3A5F; }
+  pre {
+    background: #14202E; color: #E4E9F0;
+    padding: 14px 16px; border-radius: 8px; font-size: 11.5px; overflow-x: auto;
+    line-height: 1.5;
+  }
+  pre code { background: none; color: inherit; padding: 0; }
+
+  table { width: 100%; border-collapse: collapse; margin: 10px 0 18px; font-size: 11.8px; }
+  th { background: var(--c-primary); color: #fff; text-align: left; padding: 7px 10px; font-weight: 600; }
+  td { padding: 6px 10px; border-bottom: 1px solid #E2E6EC; vertical-align: top; }
+  tr:nth-child(even) td { background: #FAFBFC; }
+
+  .callout {
+    border-left: 4px solid var(--c-accent);
+    background: #EDFAF5;
+    padding: 10px 14px;
+    border-radius: 0 6px 6px 0;
+    margin: 14px 0;
+    font-size: 12.3px;
+  }
+  .callout.warn { border-left-color: #C98A1F; background: #FBF3E4; }
+  .callout.danger { border-left-color: #C0392B; background: #FBEAE8; }
+  .callout strong { color: var(--c-primary-dark); }
+
+  .steps { counter-reset: step; list-style: none; padding: 0; margin: 10px 0; }
+  .steps li {
+    counter-increment: step;
+    position: relative;
+    padding: 4px 0 10px 34px;
+    margin-bottom: 4px;
+  }
+  .steps li::before {
+    content: counter(step);
+    position: absolute; left: 0; top: 3px;
+    width: 22px; height: 22px;
+    background: var(--c-accent);
+    color: #fff; border-radius: 50%;
+    font-size: 11px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  figure { margin: 14px 0 20px; text-align: center; }
+  figure img {
+    max-width: 100%;
+    border: 1px solid #DDE2E8;
+    border-radius: 8px;
+    box-shadow: 0 3px 10px rgba(30,58,95,0.10);
+  }
+  figcaption { font-size: 11px; color: var(--c-muted); margin-top: 6px; }
+
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+</style>
+</head>
+<body>
+
+<!-- COVER -->
+<div class="cover">
+  <svg class="logo-mark" viewBox="0 0 100 100">
+    <circle cx="50" cy="50" r="44" fill="none" stroke="#2FA88A" stroke-width="6"/>
+    <path d="M30 55 L45 68 L72 35" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+  <div class="brand">apex-bancard-pos-plugin</div>
+  <h1>POS Bancard &ndash; Cobro directo (cliente)</h1>
+  <p class="subtitle">Oracle APEX Dynamic Action plugin: charge a physical Bancard POS terminal directly from the cashier's browser, with no application server in between. Framework-agnostic, drop into any APEX app.</p>
+  <div class="tag">
+    <span>Oracle APEX 20.2 / 22.x / 24.x</span>
+    <span>Dynamic Action plugin</span>
+    <span>MIT License</span>
+  </div>
+  <div class="footer-note">github.com/silviosotelo/apex-bancard-pos-plugin</div>
+</div>
+
+<!-- 1. WHY / HOW IT WORKS -->
+<div class="page">
+  <h2 class="section-title"><span class="num">1</span>Why it exists, and how it works</h2>
+
+  <p>A server-to-server integration with a Bancard POS terminal only works <strong>if the application server can reach the terminal's local IP over the network</strong>. In a lot of real deployments the app server and the terminal sit on different network segments, and that path never connects.</p>
+
+  <p>This plugin is the alternative path: the machine that <em>is</em> on the same LAN as the terminal is the <strong>cashier's browser</strong>, not the server. The plugin does a direct <code>fetch()</code> from the browser to the terminal's local IP/port &mdash; no backend in between.</p>
+
+  <div class="callout">
+    <strong>Coexists, doesn't replace.</strong> Built to work alongside an existing server-to-server integration, if you have one: use that path where the server can reach the POS, use this plugin where it can't. Both can live on the same page.
+  </div>
+
+  <h3>Execution flow</h3>
+  <ol class="steps">
+    <li>The cashier triggers the Dynamic Action (e.g. clicking a "Charge with POS" button).</li>
+    <li>The plugin's JavaScript does <code>POST /pos/eco</code> to the terminal (5s timeout) to confirm it's awake.</li>
+    <li>Depending on the configured <strong>Medio de Pago</strong>, it calls the matching terminal endpoint (90s timeout) &mdash; card, QR, e-wallet, etc.</li>
+    <li>Writes the terminal's <strong>raw</strong> result into the configured destination items.</li>
+    <li>All feedback &mdash;loading, success, error&mdash; shown with <strong>SweetAlert2</strong>, bundled with the plugin (no CDN dependency).</li>
+  </ol>
+
+  <p>No round-trip to an application server in between: the entire Bancard protocol runs in the browser. The reference number (<code>facturaNro</code>) is generated with <code>Date.now()</code>, no database sequence involved.</p>
+
+  <h3>Feedback: SweetAlert2 modal, always</h3>
+  <div class="grid3">
+    <figure>
+      <img src="img/loader_spinner.png" alt="Loading modal with spinner">
+      <figcaption>Loading &mdash; hand-built spinner in the modal's HTML (doesn't rely on <code>Swal.showLoading()</code>, see note below). Never shows a button.</figcaption>
+    </figure>
+    <figure>
+      <img src="img/resultado_exito.png" alt="Success modal with Aceptar button">
+      <figcaption>Success &mdash; modal with a green icon and an "Aceptar" button, not an auto-dismissing toast.</figcaption>
+    </figure>
+    <figure>
+      <img src="img/error_validacion.png" alt="Error modal with Aceptar button">
+      <figcaption>Error &mdash; same pattern for any failure: item validation, POS decline, timeout, or network/CORS issue.</figcaption>
+    </figure>
+  </div>
+
+  <div class="callout warn">
+    <strong>Technical note &mdash; why the loader doesn't use <code>Swal.showLoading()</code>.</strong> That SweetAlert2 method works by converting the "Confirm" button into the spinner; if there's no visible button to convert (<code>showConfirmButton:false</code>), the spinner has nowhere to render. And if the swap isn't reverted cleanly before the next alert, the "Confirm" button can stay hidden forever. Instead, the plugin builds the spinner by hand in the modal's <code>html</code> (reusing the <code>.swal2-loader</code> CSS class already in the bundle) with <code>showConfirmButton:false</code> fixed: there's never a button during loading, and never anything to revert.
+  </div>
+
+  <div class="callout warn">
+    <strong>Mandatory browser requirement (real terminal only).</strong> The Bancard terminal speaks plain HTTP and doesn't send CORS headers. If your app is served over HTTPS, the browser blocks the <code>fetch()</code> unless, once per cashier machine: (1) <code>chrome://flags/#block-insecure-private-network-requests</code> is disabled, and (2) an "Allow CORS"-type extension is installed and enabled. Not needed against the bundled simulator (section 5): it already answers proper CORS headers.
+  </div>
+</div>
+
+<!-- 2. INSTALLATION -->
+<div class="page">
+  <h2 class="section-title"><span class="num">2</span>Installation</h2>
+
+  <h3>Recommended: through the APEX UI</h3>
+  <p><strong>Shared Components &rarr; Plug-ins &rarr; Create Plugin</strong>, filling in the fields by hand:</p>
+  <ol class="steps">
+    <li><strong>Identification:</strong> Name <code>BANCARD.POS_CLIENTE</code>, Display Name "POS Bancard - Cobro directo (cliente)", Type <em>Dynamic Action</em>, Category <em>JavaScript</em>.</li>
+    <li><strong>Source &rarr; PL/SQL Code:</strong> the <code>render</code> function (full code in <code>install/manual_ui_install.md</code>).</li>
+    <li><strong>Callbacks &rarr; Render Function Name:</strong> <code>render</code>.</li>
+    <li><strong>Settings:</strong> API Version 1, Supported UI Types Desktop, Substitute Attributes = Yes.</li>
+    <li><strong>Files:</strong> upload <code>js/pos_bancard_cliente_bundle.js</code> (SweetAlert2 + plugin runtime, single file &mdash; two separate files in <code>JavaScript File URLs</code> render as one broken <code>&lt;script&gt;</code> tag).</li>
+    <li><strong>Custom Attributes:</strong> the 11 attributes listed in section 3, all <code>Attribute Scope = Component</code>, <code>Type = Page Item</code>.</li>
+  </ol>
+  <p class="muted">Full step-by-step with exact copy-paste field values: <code>install/manual_ui_install.md</code>.</p>
+
+  <div class="callout danger">
+    <strong>Why not just run the SQL script?</strong> The <code>install/*.sql</code> scripts use <code>wwv_flow_api.create_plugin</code>/<code>create_plugin_attribute</code> with manually chosen IDs. In practice, a hand-picked ID can end up as a literal small number instead of a real APEX-generated ID (every other plugin in a real app has a 15-20 digit ID). A small ID can collide with something else in the instance's internal ID space, and since plugin metadata loads application-wide (not per-page), a single bad ID can break Page Designer for an entire application. Installing through the UI avoids this entirely &mdash; it's the same code path Oracle uses to generate every other plugin's ID.
+  </div>
+
+  <h3>Installing into another app / workspace</h3>
+  <p>Once installed anywhere, the standard APEX way to move it: <strong>Shared Components &rarr; Plug-ins &rarr;</strong> open the plugin <strong>&rarr; Export</strong>, then in the target app <strong>Shared Components &rarr; Plug-ins &rarr; Import File</strong>. APEX resolves the target workspace/app/owner automatically and generates a real ID.</p>
+</div>
+
+<!-- 3. INTEGRATION -->
+<div class="page">
+  <h2 class="section-title"><span class="num">3</span>Integrating it into a charge/payment page</h2>
+
+  <p>The pattern that works end-to-end has <strong>three pieces</strong> in the same Dynamic Action:</p>
+
+  <div class="grid3">
+    <figure style="text-align:left; background:#FAFBFC; border-radius:8px; padding:12px 14px; margin:0;">
+      <strong style="color:var(--c-primary-dark)">1. Resolve configuration</strong>
+      <p class="muted" style="margin-top:6px;">Native <em>Execute Server-side Code</em> action: PL/SQL with bind variables resolving IP/Port/Payment Method/Amount from your own app's logic, written into the plugin's configuration items.</p>
+    </figure>
+    <figure style="text-align:left; background:#FAFBFC; border-radius:8px; padding:12px 14px; margin:0;">
+      <strong style="color:var(--c-primary-dark)">2. The plugin's action</strong>
+      <p class="muted" style="margin-top:6px;">The Dynamic Action itself (<em>POS Bancard - Cobro directo (cliente)</em>), with the 11 attributes mapped to your page's items.</p>
+    </figure>
+    <figure style="text-align:left; background:#FAFBFC; border-radius:8px; padding:12px 14px; margin:0;">
+      <strong style="color:var(--c-primary-dark)">3. Map the result</strong>
+      <p class="muted" style="margin-top:6px;">A separate <strong>Change</strong> event on one of the plugin's destination items (not a chained action) that copies the raw result into your form's real fields.</p>
+    </figure>
+  </div>
+
+  <div class="callout warn">
+    <strong>Why piece 3 is a separate event, not a third chained action.</strong> The plugin's action runs asynchronously without telling the Dynamic Action engine to wait &mdash; as far as APEX is concerned, it "finishes" as soon as it's triggered, not when the POS responds. A chained action right after it would run immediately, before any result exists. The plugin does not suppress the <code>change</code> event on its destination items, so a separate Change-triggered action on one of them always fires once a result is actually in.
+  </div>
+
+  <h3>The plugin's 11 attributes</h3>
+  <table>
+    <tr><th>#</th><th>Attribute</th><th>Item content</th><th>Req.</th></tr>
+    <tr><td>1</td><td>Item: IP del POS</td><td>Terminal's local IP</td><td>Yes</td></tr>
+    <tr><td>2</td><td>Item: Puerto del POS</td><td>Terminal's port</td><td>Yes</td></tr>
+    <tr><td>3</td><td>Item: Medio de Pago</td><td>Payment method code (section 4)</td><td>Yes</td></tr>
+    <tr><td>4</td><td>Item: Monto</td><td>Amount, plain number (no thousands separator)</td><td>Yes</td></tr>
+    <tr><td>5</td><td>Item: Datos Adicionales (JSON)</td><td>JSON depending on the method &mdash; section 4</td><td>No</td></tr>
+    <tr><td>6</td><td>Item destino: Nro Boleta/Autorización</td><td>raw <code>nroBoleta</code> / <code>codigoAutorizacion</code></td><td>Yes</td></tr>
+    <tr><td>7</td><td>Item destino: Issuer ID</td><td>raw <code>issuerId</code> (e.g. <code>VD</code>, <code>MC</code>) &mdash; unmapped</td><td>Yes</td></tr>
+    <tr><td>8</td><td>Item destino: Monto Cobrado</td><td>Charged amount, plain number</td><td>Yes</td></tr>
+    <tr><td>9</td><td>Item destino: Fecha/Hora de la Operación</td><td>Timestamp, ISO&nbsp;8601</td><td>Yes</td></tr>
+    <tr><td>10</td><td>Item destino: Nro de Referencia</td><td>generated <code>facturaNro</code> (<code>Date.now()</code>)</td><td>Yes</td></tr>
+    <tr><td>11</td><td>Item destino: Resultado Completo (JSON)</td><td>full raw POS response</td><td>No</td></tr>
+  </table>
+
+  <h3>Piece 1 &mdash; example PL/SQL</h3>
+  <div class="callout danger">
+    <strong>Bind variables, not <code>apex_application.g_x01</code>.</strong> "Execute Server-side Code" reads/writes items with <code>:ITEM_NAME</code> directly, via "Items to Submit"/"Items to Return" &mdash; it doesn't wait for or print JSON with <code>sys.htp.p</code>. That other pattern belongs to a page-level Ajax Callback <strong>process</strong> invoked from JavaScript via <code>apex.server.process(...)</code> &mdash; a different mechanism, different syntax. Mixing them means the action silently sets nothing.
+  </div>
+  <pre><code>declare
+  l_ip_pos     my_terminals_table.ip_pos%type;
+  l_puerto_pos my_terminals_table.puerto_pos%type;
+begin
+  select t.ip_pos, t.puerto_pos into l_ip_pos, l_puerto_pos
+    from my_terminals_table t
+   where t.branch_id = :P_BRANCH_ID
+     and t.register   = :P_REGISTER
+     and t.active      = 'Y';
+
+  :P_POS_IP     := l_ip_pos;
+  :P_POS_PUERTO := to_char(l_puerto_pos);
+  :P_POS_MEDIO_PAGO := case :P_CARD_TYPE
+                          when 'DEBIT' then 'TARJETA_DEBITO'
+                          else 'TARJETA_CONTADO'
+                        end;
+  :P_POS_MONTO_PLANO := trim(replace(:P_AMOUNT, '.', ''));
+exception
+  when no_data_found then
+    raise_application_error(-20001, 'No POS terminal configured for this register.');
+end;</code></pre>
+
+  <h3>Piece 3 &mdash; example result mapping</h3>
+  <pre><code>function formatThousands(n) {
+  n = Math.round(Number(n) || 0);
+  return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+}
+apex.item("MY_RECEIPT_NUMBER_ITEM").setValue(
+  formatThousands(apex.item("P_POS_NRO_BOLETA").getValue())
+);
+apex.item("MY_AMOUNT_ITEM").setValue(
+  formatThousands(apex.item("P_POS_MONTO_COBRADO").getValue())
+);</code></pre>
+</div>
+
+<!-- 4. PAYMENT METHODS -->
+<div class="page">
+  <h2 class="section-title"><span class="num">4</span>Payment methods and downstream mapping</h2>
+
+  <h3>Supported payment methods</h3>
+  <table>
+    <tr><th>Code (Item: Medio de Pago)</th><th>Bancard endpoint(s)</th><th>Datos Adicionales (JSON)</th></tr>
+    <tr><td><code>TARJETA_CONTADO</code></td><td><code>venta-ux</code> &rarr; <code>descuento</code></td><td>&mdash;</td></tr>
+    <tr><td><code>TARJETA_CUOTAS</code></td><td><code>venta-ux</code> (installments) &rarr; <code>descuento</code></td><td><code>{"cuotas":N,"plan":N}</code></td></tr>
+    <tr><td><code>TARJETA_DEBITO</code></td><td><code>venta/debito</code> &rarr; <code>descuento</code></td><td>&mdash;</td></tr>
+    <tr><td><code>TARJETA_CREDITO</code></td><td><code>venta/credito</code> &rarr; <code>descuento</code></td><td><code>{"cuotas":N,"plan":N}</code></td></tr>
+    <tr><td><code>QR</code></td><td><code>venta-qr</code></td><td><code>{"montoVuelto":N,"promotions":[...]}</code> (optional)</td></tr>
+    <tr><td><code>QR_PIX</code></td><td><code>venta-qr-pix</code></td><td><code>{"pix_payer_cpf":"...","pix_payer_phone":"..."}</code></td></tr>
+    <tr><td><code>EXTRACCION_QR</code></td><td><code>extraccion-qr</code></td><td>&mdash;</td></tr>
+    <tr><td><code>CANJE</code></td><td><code>venta-canje</code></td><td>&mdash;</td></tr>
+    <tr><td><code>CANJE_QR</code></td><td><code>venta-canje-qr</code></td><td>&mdash;</td></tr>
+    <tr><td><code>BILLETERA</code></td><td><code>venta-billetera</code></td><td><code>{"billetera":"ZIM","cuenta":"123456"}</code></td></tr>
+  </table>
+  <p class="muted"><code>anulacion</code> / <code>consulta-anulacion</code> are deliberately out of scope: post-sale management operations, not payment methods.</p>
+
+  <h3>Downstream mapping (each app's own responsibility)</h3>
+  <p>Each company keeps its own card-brand catalog (<code>issuerId &rarr; internal brand id</code>). The plugin doesn't know it; the mapping happens in the page, typically in the same "Change" event from piece 3:</p>
+  <pre><code>var myBrand = MY_BRAND_CATALOG[ apex.item('P_POS_ISSUER_ID').getValue() ] || 99;
+apex.item('MY_CARD_BRAND_ITEM').setValue(myBrand);
+
+// Same applies to date formatting: convert P_POS_FECHA (ISO 8601)
+// to whatever format your save process expects.</code></pre>
+
+  <div class="callout">
+    This is intentionally each app's responsibility, not the plugin's &mdash; it's what lets the same, unmodified plugin be installed in any application, with its own brand catalog and its own save format.
+  </div>
+</div>
+
+<!-- 5. SIMULATOR -->
+<div class="page">
+  <h2 class="section-title"><span class="num">5</span>Testing without a physical terminal</h2>
+
+  <p><code>simulator/pos_simulator.py</code> implements all 13 real Bancard v1.5.0 endpoints, runs on the same machine or over the LAN, no external dependencies:</p>
+
+  <pre><code>python pos_simulator.py --port 3000</code></pre>
+
+  <h3>Simulating realism: delay and random outcomes</h3>
+  <table>
+    <tr><th>Flag</th><th>What it does</th></tr>
+    <tr><td><code>--delay-cliente N</code> or <code>N-M</code></td><td>Simulates how long the customer takes to complete the transaction. Fixed value or random range (different every sale). Applies to everything except <code>/pos/eco</code>.</td></tr>
+    <tr><td><code>--random</code></td><td>Instead of always approving, randomly rejects sales (insufficient funds, expired/blocked card, etc.), times out, or fails <code>/pos/eco</code> itself.</td></tr>
+    <tr><td><code>--fail-rate</code></td><td>Rejection probability (0-1). Default 0.15.</td></tr>
+    <tr><td><code>--timeout-rate</code></td><td>Timeout probability (0-1). Default 0.03.</td></tr>
+    <tr><td><code>--eco-fail-rate</code></td><td>Probability the <code>/pos/eco</code> check fails. Default 0.05.</td></tr>
+    <tr><td><code>--interactive</code></td><td>Approve/reject/timeout each sale from the console instead, to reproduce a specific case.</td></tr>
+  </table>
+
+  <pre><code>python pos_simulator.py --port 3000 --delay-cliente 5-10 --random</code></pre>
+
+  <div class="callout warn">
+    <strong>Mind the gap between simulated delay and the plugin's timeout.</strong> The plugin's operation timeout is 90 seconds. If <code>--delay-cliente</code>'s max is close to or above that, the browser can report <code>Failed to fetch</code> instead of completing the test &mdash; keep the delay range comfortably below the timeout.
+  </div>
+
+  <p class="muted">Full endpoint/flag reference: <code>simulator/README.md</code>. To try the plugin alone, no APEX app needed: <code>js/demo.html</code>.</p>
+</div>
+
+<!-- 6. TROUBLESHOOTING -->
+<div class="page">
+  <h2 class="section-title"><span class="num">6</span>Troubleshooting</h2>
+
+  <table>
+    <tr><th>Symptom</th><th>Likely cause</th></tr>
+    <tr><td><code>Failed to fetch</code> against a <strong>real</strong> terminal</td><td>Missing <code>chrome://flags</code> + "Allow CORS" extension setup on that machine.</td></tr>
+    <tr><td><code>Failed to fetch</code> against the <strong>simulator</strong></td><td><code>--delay-cliente</code> too close to the plugin's 90s timeout &mdash; lower the delay range.</td></tr>
+    <tr><td>"POS did not respond in time"</td><td>Terminal off, wrong IP/port, disconnected cable, or (against the simulator) <code>--random</code> rolled a timeout.</td></tr>
+    <tr><td>Configuration items arrive empty at the plugin's action</td><td>"Execute Server-side Code" (piece 1) written with <code>g_x01</code>/<code>sys.htp.p</code> instead of bind variables &mdash; see section 3. No error thrown, just sets nothing.</td></tr>
+    <tr><td>Plugin action chained after another async action never gets its attributes</td><td>Move the result mapping to a separate "Change" event (piece 3), not a chained action &mdash; see section 3.</td></tr>
+    <tr><td>Charge button doesn't show/hide live as the form changes</td><td>A server-side button condition only evaluates at page render &mdash; add your own show/hide Dynamic Action bound to the relevant items.</td></tr>
+    <tr><td>Page Designer breaks app-wide (can't open any Dynamic Action, any page)</td><td>A plugin installed with a manually-typed small ID via <code>wwv_flow_api</code> &mdash; see the danger box in section 2. Uninstall with <code>WWV_FLOW_API.REMOVE_PLUGIN</code> and reinstall through the UI.</td></tr>
+  </table>
+</div>
+
+<!-- 7. COMPATIBILITY -->
+<div class="page">
+  <h2 class="section-title"><span class="num">7</span>APEX version compatibility</h2>
+
+  <p>Built and tested on APEX 20.2. The API this plugin's <code>render</code> function uses is stable and documented from APEX 20.1 onward:</p>
+
+  <ul>
+    <li><strong>The <code>apex_plugin.t_dynamic_action</code> / <code>t_dynamic_action_render_result</code> API is stable and documented.</strong> Comparing the official definitions for 20.1 against 24.2, the 15 <code>attribute_01</code>..<code>attribute_15</code> fields this plugin uses didn't change; 24.2 only adds new fields at the end this plugin doesn't need.</li>
+    <li><strong>SweetAlert2 ships bundled</strong> as the plugin's own file, not loaded from an external CDN &mdash; a strict Content Security Policy <code>script-src</code> would block a <code>&lt;script&gt;</code> pointing at an external CDN domain not explicitly allow-listed.</li>
+    <li><strong>APEX 24.1 deprecated "Substitute Attribute Values"</strong> for region plugins; doesn't affect this plugin, which uses the simpler, stable Dynamic Action pattern (<code>p_render_function</code> only).</li>
+  </ul>
+
+  <div class="callout">
+    Installing through the UI (section 2, recommended path), version compatibility is handled by APEX itself &mdash; doesn't depend on any hand-typed <code>p_release</code>. The <code>install/*.sql</code> scripts remain in the repo mainly as a readable reference for the plugin's source code.
+  </div>
+</div>
+
+</body>
+</html>
