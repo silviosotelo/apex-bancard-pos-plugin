@@ -1,15 +1,15 @@
-# Manual installation via the APEX UI (recommended)
+# Instalación manual por la UI de APEX
 
-Recommended over running the SQL scripts directly — see the "Why not just
-run the SQL script?" note in the main README. This walks through creating
-the plugin by hand in **Shared Components → Plug-ins → Create**, which is
-the same path APEX uses to generate every other plugin's real ID.
+Alternativa a usar los exports reales (`install_plugin_apex20.sql` /
+`install_plugin_apex24.sql`) — mismo resultado: APEX genera un ID real para
+el plugin por el mismo camino que usa para cualquier otro. Esto recorre
+**Shared Components → Plug-ins → Create**, paso a paso.
 
-## Step 1: Create the plugin
+## Paso 1: Crear el plugin
 
-**App Builder → your application → Shared Components → Plugins → Create**
+**App Builder → tu aplicación → Shared Components → Plugins → Create**
 
-| Field | Value |
+| Campo | Valor |
 |---|---|
 | Name | `BANCARD.POS_CLIENTE` |
 | Display Name | `POS Bancard - Cobro directo (cliente)` |
@@ -18,7 +18,7 @@ the same path APEX uses to generate every other plugin's real ID.
 | API Version | 1 |
 | Supported UI Types | Desktop |
 | Substitute Attributes | Yes |
-| Standard Attributes | (none checked) |
+| Standard Attributes | (ninguno marcado) |
 | Version Identifier | 1.0 |
 
 **Source → PL/SQL Code:**
@@ -53,73 +53,73 @@ end render;
 **Help Text:**
 
 ```
-Charges a Bancard POS terminal by calling it directly from the cashier's
-browser (fetch to the terminal's local IP/port), with no backend in the
-middle. Supports every payment method of the Bancard v1.5.0 REST protocol
-(cash/installment/forced-debit/forced-credit card, QR, QR PIX, QR
-withdrawal, loyalty-point redemption, QR redemption, e-wallet). Does not map
-or format anything to a company-specific schema: exposes issuerId, amount
-and date raw -- each consuming app does its own mapping/formatting before
-saving. Uses SweetAlert2 (bundled as the plugin's own file, not via external
-CDN -- works with Content Security Policy enabled and without internet
-access on the cashier machine) for the loader during the echo check and
-while waiting for/reading the payment. Requires the branch's browser to have
-chrome://flags/#block-insecure-private-network-requests disabled and an
-"Allow CORS"-type extension installed, because the Bancard terminal is plain
-HTTP and doesn't send CORS headers. Compatible with APEX 20.1 onward.
+Cobra con un terminal POS Bancard llamando directo desde el navegador del
+cajero (fetch al IP/puerto local del terminal), sin depender de ningun
+backend particular. Soporta todos los medios de pago del protocolo Bancard
+v1.5.0 (tarjeta contado/cuotas/debito forzado/credito forzado, QR, QR PIX,
+extraccion QR, canje de puntos, canje QR, billetera electronica). No mapea
+ni formatea nada a un esquema de datos especifico de una empresa: expone
+issuerId, monto y fecha crudos -cada app consumidora hace su propio
+mapeo/formato antes de guardar. Usa SweetAlert2 (empaquetado como archivo
+propio del plugin, no via CDN externo) para el loader durante el eco y
+durante la espera/lectura del pago. Requiere que el navegador de la
+sucursal tenga deshabilitado
+chrome://flags/#block-insecure-private-network-requests y una extension
+tipo "Allow CORS", porque el terminal Bancard es HTTP plano y no manda
+headers CORS. Compatible con APEX 20.1 en adelante.
 ```
 
-Save the plugin before continuing — that's when it gets a real ID assigned.
+Guardá el plugin antes de seguir — recién ahí queda con un ID real asignado.
 
-## Step 2: Upload the JS file (same plugin, Files section)
+## Paso 2: Subir el archivo JS (dentro del mismo plugin, sección Files)
 
-File to upload: `js/pos_bancard_cliente_bundle.js` (SweetAlert2 + the
-plugin's own runtime bundled into a single file — **it needs to be a single
-file**: two separate files referenced in `p_javascript_file_urls` render as
-one broken `<script src="a.js,b.js">` tag instead of two separate tags,
-which is why they're bundled).
+Archivo a subir: `js/pos_bancard_cliente_bundle.js` (SweetAlert2 + el
+runtime del plugin en un solo archivo — **tiene que ser un solo archivo**:
+dos archivos separados en `p_javascript_file_urls` se renderizan como un
+único `<script src="a.js,b.js">` inválido en vez de dos tags separados, por
+eso van empaquetados juntos).
 
-If the UI lets you rename the uploaded file, name it
-`pos_bancard_cliente.js` to match:
+Si la UI te deja renombrarlo, dejalo como `pos_bancard_cliente.js` para que
+coincida con:
 
 **JavaScript File URLs:** `#PLUGIN_FILES#pos_bancard_cliente.js`
 
-If the UI keeps the original uploaded filename
-(`pos_bancard_cliente_bundle.js`), set the field above to
-`#PLUGIN_FILES#pos_bancard_cliente_bundle.js` instead — what matters is that
-the name matches the uploaded file exactly.
+Si la UI conserva el nombre original del archivo subido
+(`pos_bancard_cliente_bundle.js`), ajustá el campo de arriba a
+`#PLUGIN_FILES#pos_bancard_cliente_bundle.js` en su lugar — lo que importa
+es que el nombre coincida exactamente con el archivo subido.
 
-## Step 3: The 11 attributes (Custom Attributes → Create Attribute, one by one)
+## Paso 3: Los 11 atributos (Custom Attributes → Create Attribute, uno por uno)
 
-All with **Attribute Scope = Component**, **Type = Page Item**, **Is
-Translatable = No**. Sequence defines the order in the panel; use 10, 20,
-30... 110 in order.
+Todos con **Attribute Scope = Component**, **Type = Page Item**, **Is
+Translatable = No**. La secuencia define el orden en el panel; usá 10, 20,
+30... 110 en orden.
 
-| # | Sequence | Prompt | Required | Help Text |
+| # | Sequence | Prompt | Oblig. | Help Text |
 |---|---|---|---|---|
-| 1 | 10 | Item: IP del POS | Yes | Name of the item holding the terminal's local IP. |
-| 2 | 20 | Item: Puerto del POS | Yes | Name of the item holding the terminal's port. |
-| 3 | 30 | Item: Medio de Pago | Yes | Name of the item holding the payment method code: TARJETA_CONTADO, TARJETA_CUOTAS, TARJETA_DEBITO, TARJETA_CREDITO, QR, QR_PIX, EXTRACCION_QR, CANJE, CANJE_QR, or BILLETERA. |
-| 4 | 40 | Item: Monto | Yes | Name of the item holding the amount to charge, as a plain number (no thousands separator). If your app formats the on-screen amount, convert it to a number before this action fires. |
-| 5 | 50 | Item: Datos Adicionales (JSON, opcional) | No | Item with raw JSON depending on the payment method: {"cuotas":N,"plan":N} for TARJETA_CUOTAS/TARJETA_CREDITO, {"billetera":"ZIM","cuenta":"123456"} for BILLETERA, {"pix_payer_cpf":"...","pix_payer_phone":"..."} for QR_PIX, {"montoVuelto":N,"promotions":[...]} optional for QR. Empty if the method doesn't need extra data. |
-| 6 | 60 | Item destino: Nro Boleta/Autorizacion | Yes | Item where the raw string nroBoleta (or codigoAutorizacion if nroBoleta is absent) returned by the POS is written. |
-| 7 | 70 | Item destino: Issuer ID | Yes | Item where the raw issuerId returned by the POS is written (e.g. VD, MC, ZM). The plugin does NOT map it to any internal card-brand code -- each app does its own mapping against its own catalog, if it needs one. |
-| 8 | 80 | Item destino: Monto Cobrado | Yes | Item where the charged amount is written, as a plain number (unformatted). Each app formats it per its own convention before saving. |
-| 9 | 90 | Item destino: Fecha/Hora de la Operacion | Yes | Item where the current date/time is written in ISO 8601 format (e.g. 2026-07-22T19:13:07.342Z). Each app converts it to whatever format its save process needs. |
-| 10 | 100 | Item destino: Nro de Referencia | Yes | Item where the client-side generated facturaNro (Date.now()) is written -- the reference number the plugin passed to the POS. |
-| 11 | 110 | Item destino: Resultado Completo (JSON, opcional) | No | Item where the full JSON returned by the POS is written, to access method-specific fields that don't have their own item (saldo, montoComision, montoRs, nombreCliente, etc). |
+| 1 | 10 | Item: IP del POS | Yes | Nombre del item que contiene la IP local del terminal Bancard. |
+| 2 | 20 | Item: Puerto del POS | Yes | Nombre del item que contiene el puerto del terminal Bancard. |
+| 3 | 30 | Item: Medio de Pago | Yes | Nombre del item con el codigo del medio de pago: TARJETA_CONTADO, TARJETA_CUOTAS, TARJETA_DEBITO, TARJETA_CREDITO, QR, QR_PIX, EXTRACCION_QR, CANJE, CANJE_QR o BILLETERA. |
+| 4 | 40 | Item: Monto | Yes | Nombre del item con el monto a cobrar, como numero plano (sin separador de miles). Si tu app formatea el monto en pantalla, convertilo a numero antes de que dispare esta accion. |
+| 5 | 50 | Item: Datos Adicionales (JSON, opcional) | No | Item con un JSON crudo segun el medio de pago: {"cuotas":N,"plan":N} para TARJETA_CUOTAS/TARJETA_CREDITO, {"billetera":"ZIM","cuenta":"123456"} para BILLETERA, {"pix_payer_cpf":"...","pix_payer_phone":"..."} para QR_PIX, {"montoVuelto":N,"promotions":[...]} opcional para QR. Vacio si el medio no necesita datos extra. |
+| 6 | 60 | Item destino: Nro Boleta/Autorizacion | Yes | Item donde se escribe, como string crudo, el nroBoleta (o codigoAutorizacion si no viene nroBoleta) devuelto por el POS. |
+| 7 | 70 | Item destino: Issuer ID | Yes | Item donde se escribe el issuerId crudo devuelto por el POS (ej. VD, MC, ZM). El plugin NO lo mapea a ningun codigo de marca de tarjeta interno -cada app hace su propio mapeo contra su propio catalogo, si lo necesita. |
+| 8 | 80 | Item destino: Monto Cobrado | Yes | Item donde se escribe el monto cobrado como numero plano (sin formato). Cada app lo formatea segun su propia convencion antes de guardarlo. |
+| 9 | 90 | Item destino: Fecha/Hora de la Operacion | Yes | Item donde se escribe la fecha/hora actual en formato ISO 8601 (ej. 2026-07-22T19:13:07.342Z). Cada app la convierte al formato que necesite su proceso de guardado. |
+| 10 | 100 | Item destino: Nro de Referencia | Yes | Item donde se escribe el facturaNro generado client-side (Date.now()) para esta transaccion, el numero de referencia que el plugin le paso al POS. |
+| 11 | 110 | Item destino: Resultado Completo (JSON, opcional) | No | Item donde se escribe el JSON completo devuelto por el POS, para acceder a campos especificos de cada medio que no tienen item propio (saldo, montoComision, montoRs, nombreCliente, etc.). |
 
-The order of these 11 attributes matters: they're what shows up as
-Attribute 1..11 when configuring the plugin's action on a Dynamic Action,
-and `attribute_01..attribute_11` in the `render()` above passes them in that
-same order. Don't change the creation order.
+El orden de estos 11 atributos importa: son los que después se ven como
+Attribute 1..11 al configurar la acción del plugin en una Dynamic Action, y
+`attribute_01..attribute_11` en el `render()` de arriba los pasa en ese
+mismo orden. No cambies el orden de creación.
 
-## Step 4: Verify
+## Paso 4: Verificar
 
 ```sql
 select plugin_id, name, display_name from apex_appl_plugins
- where application_id = :your_app_id and name = 'BANCARD.POS_CLIENTE';
+ where application_id = :tu_app_id and name = 'BANCARD.POS_CLIENTE';
 ```
 
-`PLUGIN_ID` should come back as a real 15-20 digit number, not a small
-manually-typed one.
+`PLUGIN_ID` debería salir con un número real de 15-20 dígitos, no un número
+chico puesto a mano.

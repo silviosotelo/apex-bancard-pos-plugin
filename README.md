@@ -1,313 +1,336 @@
 # apex-bancard-pos-plugin
 
-Oracle APEX Dynamic Action plugin that charges a physical **Bancard POS
-terminal** directly from the cashier's browser (`fetch()` to the terminal's
-local IP/port), with no application server in the middle.
+Plugin de Dynamic Action para Oracle APEX que cobra con un terminal físico
+**POS Bancard** directo desde el navegador del cajero (`fetch()` al IP/puerto
+local del terminal), sin ningún servidor de aplicaciones en el medio.
 
-**Generic by design:** not tied to any company's schema or data model. It
-doesn't map `issuerId` to any internal card-brand catalog, and doesn't
-format amount or date for any particular save process — it exposes the raw
-values the terminal returns, and each app that uses it does its own
-mapping/formatting before persisting. This means you can install it in any
-APEX application without touching the plugin's code.
+Bancard es el principal procesador de pagos con tarjeta de Paraguay, así que
+este plugin nació pensando en ese mercado — pero el patrón (hablarle a un
+terminal POS por REST local desde el navegador, en vez de desde el backend)
+sirve igual para cualquier otro protocolo de terminal que exponga una API
+HTTP local, adaptando el runtime JS a ese protocolo.
 
-## Why this exists
+**Genérico a propósito:** no está atado al esquema/datos de ninguna empresa.
+No mapea `issuerId` a ningún catálogo interno de marcas de tarjeta, no
+formatea monto ni fecha para ningún proceso de guardado en particular —
+expone los valores tal cual los devuelve el terminal, y cada app que lo
+instale hace su propio mapeo/formato antes de guardar. Esto permite
+instalarlo en cualquier aplicación APEX sin tocar el código del plugin.
 
-A backend that talks to the terminal (via `apex_web_service.make_rest_request`
-or any other server-to-terminal mechanism) only works if that server can
-reach the terminal's local IP over the network — and in many real setups the
-application server and the POS terminal sit on different network segments,
-so that path never connects.
+## Por qué existe
 
-This plugin is the alternative path: the machine that *is* on the same LAN
-as the terminal is the cashier's browser, not the server. Meant to
-**coexist** with an existing server-to-server integration, if you have one:
-use that path where the server can reach the POS, use this plugin where it
-can't.
+Un backend que hable con el terminal (vía `apex_web_service.make_rest_request`
+u otro mecanismo servidor-a-terminal) funciona solo si ese servidor llega por
+red a la IP local del terminal — y en muchos casos reales el servidor de
+aplicaciones y el terminal están en segmentos de red distintos, así que ese
+camino nunca conecta. Este plugin es la vía alternativa: el que sí está en la
+misma LAN que el terminal es el navegador del cajero, no el servidor.
 
-## How it works
+Pensado para **coexistir** con una integración servidor-a-servidor existente,
+si ya tenés una: usá esa vía donde el servidor llegue al POS, usá este
+plugin donde no llegue.
 
-1. The cashier triggers the Dynamic Action (e.g. clicking a "Charge with
-   POS" button).
-2. The plugin's JS (`pos_bancard_cliente.js`) does `POST /pos/eco` to the
-   terminal (5s timeout) to confirm it's awake.
-3. Depending on the configured **Medio de Pago** (payment method), it calls
-   the corresponding terminal endpoint (90s timeout, to give a real customer
-   time to complete the transaction) — see the payment methods table below.
-4. Writes the raw result into the configured destination items, firing their
-   `change` event (not suppressed) so the consuming app can react.
-5. All visual feedback — loading, success, error — is shown with
-   **SweetAlert2**, bundled with the plugin (no external CDN, doesn't depend
-   on `apex.message`).
+## Cómo funciona
 
-There's no round-trip to an application server in between — the whole
-Bancard protocol runs in the browser. `Date.now()` generates the
-`facturaNro` (reference number), with no dependency on any database
-sequence.
+1. El cajero dispara la Dynamic Action (por ejemplo, el click de un botón
+   "Cobrar con POS").
+2. El JS del plugin (`pos_bancard_cliente.js`) hace `POST /pos/eco` al
+   terminal (timeout 5s) para confirmar que está despierto.
+3. Según el **Medio de Pago** configurado, llama al endpoint correspondiente
+   del terminal (timeout 90s, pensado para dar margen real a que el cliente
+   complete la operación) — ver tabla de medios más abajo.
+4. Escribe el resultado **crudo** en los items destino configurados,
+   disparando su evento `change` (no lo suprime) para que la app pueda
+   reaccionar.
+5. Todo el feedback visual — loader, éxito, error — se muestra con
+   **SweetAlert2**, empaquetado con el plugin (sin CDN externo, sin depender
+   de `apex.message`).
 
-## Mandatory browser requirement
+No hay ningún round-trip a un servidor de aplicaciones en el medio: todo el
+protocolo Bancard corre en el navegador. El número de referencia
+(`facturaNro`) se genera con `Date.now()`, sin depender de ninguna secuencia
+de base de datos.
 
-The Bancard terminal speaks **plain HTTP** and doesn't send CORS headers. If
-your app is served over HTTPS, the browser will always block the `fetch()`
-with a CORS/mixed-content error unless, once per cashier machine:
+## Requisito obligatorio del navegador
 
-1. Go to `chrome://flags/#block-insecure-private-network-requests` and
-   **disable** that flag.
-2. Install a Chrome extension like **"Allow CORS"** and enable it.
+El terminal Bancard habla **HTTP plano** y no manda headers CORS. Si la app
+se sirve por HTTPS, el navegador bloquea el `fetch()` salvo que, una única
+vez por máquina de cobro:
 
-If the plugin shows a "could not connect to POS" error, **this is the first
-thing to check**, not the terminal. (This requirement comes from the
-terminal's protocol, not from this plugin — it applies the same regardless
-of which app installs it. It does **not** apply when testing against the
-included simulator — see below, the simulator already answers proper CORS
-headers.)
+1. Ir a `chrome://flags/#block-insecure-private-network-requests` y
+   **deshabilitar** ese flag.
+2. Instalar una extensión de Chrome tipo **"Allow CORS"** y activarla.
 
-## Installation
+Si el plugin muestra un error de "No se pudo conectar al POS", **lo primero
+que hay que revisar es esto**, no el terminal. (Esto viene del protocolo del
+terminal, no de este plugin — aplica igual en cualquier app que lo instale.
+**No aplica** probando contra el simulador incluido, sección "Probar sin
+terminal físico": el simulador ya responde los headers CORS correctos.)
 
-### Recommended: through the APEX UI
+## Instalación
 
-**Shared Components → Plug-ins → Create Plugin**, filling in the fields by
-hand using the reference values in [`install/manual_ui_install.md`](install/manual_ui_install.md)
-(exact field values, PL/SQL `render` function code, the 11 custom
-attributes, and which file to upload).
+### Recomendado: exports reales verificados (sin editar a mano)
 
-This is the recommended path because APEX generates a real internal ID for
-the plugin through the same path every other plugin uses — no risk of ID
-collisions.
+`install/install_plugin_apex20.sql` e `install/install_plugin_apex24.sql`
+**no son scripts escritos a mano** — son exports reales de Oracle
+(**Shared Components → Plugins → Export**), con los datos identificatorios
+de origen (workspace/app/owner) reemplazados por placeholders, nada más.
+El resto — IDs internos del plugin, los 11 atributos, el JS empaquetado —
+es exactamente el export real, byte a byte.
 
-> **Why not just run the SQL script?** The `install/*.sql` scripts use
-> `wwv_flow_api.create_plugin`/`create_plugin_attribute` with manually
-> chosen IDs (`p_id=>wwv_flow_api.id(N)`, offset 0). In practice, manually
-> assigned IDs can end up as literal small numbers instead of a real
-> APEX-generated ID (every other plugin in a real app has a 15-20 digit ID).
-> A small, hand-picked ID can collide with something else in the instance's
-> internal ID space, and — since plugin metadata is loaded application-wide,
-> not per-page — a single bad ID can break Page Designer for an entire
-> application. Installing through the UI avoids this entirely, since it's
-> the same code path Oracle uses to generate every other plugin's ID.
+Esto está verificado en la práctica: el de 24.2 se generó **después** de
+importar el export de 20.2 en una aplicación APEX completamente distinta —
+otra instancia, otro workspace, otra app — vía **Shared Components →
+Plugins → Import File**, sin tocar nada a mano, y funcionó sin problema.
 
-### Alternative: SQL scripts
+Para instalar: editar los 3 valores marcados con `REPLACE` al principio del
+script que corresponda a tu versión de APEX (`p_default_workspace_id` /
+`p_default_application_id` / `p_default_owner`), y correrlo en **SQL
+Workshop → SQL Scripts** (no SQL Commands: el script supera el límite de
+32&nbsp;KB).
 
-Three near-identical scripts, one per APEX version line (only `p_release`
-differs):
+> **Por qué esto es seguro y escribir el script a mano no lo es.** Un export
+> real de Oracle usa un ID interno de 15-20 dígitos para el plugin (en este
+> caso `933693839865086367`), generado por la secuencia real de la
+> instancia — al reimportarlo, ese número gigante prácticamente no puede
+> colisionar con nada. Un script escrito a mano con `wwv_flow_api.id(9201)`
+> (un número chico, inventado) sí puede colisionar con algún objeto real y
+> viejo de la instancia — y como la metadata de plugins se carga a nivel de
+> toda la aplicación (no por página), una sola colisión puede romper Page
+> Designer para **toda la app**, en cualquier página, para cualquier
+> desarrollador. Esto no es una hipótesis: pasó exactamente así en el
+> desarrollo de este plugin, y se resolvió desinstalando con
+> `WWV_FLOW_API.REMOVE_PLUGIN` y reinstalando con un export real.
 
-| Script | Target |
-|---|---|
-| `install/install_plugin_apex20.sql` | APEX 20.x |
-| `install/install_plugin_apex22.sql` | APEX 22.x |
-| `install/install_plugin_apex24.sql` | APEX 24.x+ |
+### Alternativa: por la UI de APEX
 
-Edit `p_default_workspace_id` / `p_default_application_id` / `p_default_owner`
-at the top of the script to match your target instance before running it in
-**SQL Workshop → SQL Scripts** (not SQL Commands — the script is larger than
-the 32 KB SQL Commands limit).
+**Shared Components → Plug-ins → Create Plugin**, cargando los valores a
+mano (nombre, función `render`, los 11 atributos, subir el archivo JS). Guía
+completa paso a paso, con todos los textos exactos para copiar/pegar:
+[`install/manual_ui_install.md`](install/manual_ui_install.md). Tiene el
+mismo resultado que usar un export real: APEX genera un ID propio, sin
+riesgo de colisión.
 
-### Installing into another app / another schema
+### Instalar en otra app / otro workspace
 
-Once installed anywhere, the standard APEX way to move it: **Shared
-Components → Plug-ins →** open the plugin **→ Export**, then in the target
-app **Shared Components → Plug-ins → Import File**. APEX resolves the
-target workspace/app/owner automatically and generates a real ID — same
-mechanism used to install any third-party plugin.
+Una vez instalado (por cualquiera de las dos vías de arriba), para llevarlo
+a otra app: **Shared Components → Plug-ins →** abrir el plugin **→
+Export**, y en la app destino **Shared Components → Plug-ins → Import
+File**. APEX resuelve el workspace/app/owner destino automáticamente y
+genera un ID real — es el mismo mecanismo verificado en la práctica
+(20.2 → 24.2, entre instancias distintas) descrito arriba.
 
-## Integrating it into a charge/payment page
+## Cómo integrarlo en una página de cobro
 
-The pattern that ends up working end-to-end has **three pieces** in the same
+El patrón que funciona de punta a punta tiene **tres piezas** en la misma
 Dynamic Action:
 
-1. **Resolve configuration** — a native *Execute Server-side Code* action:
-   PL/SQL with bind variables that resolves IP/Port/Payment Method/Amount
-   according to your own app's logic (terminal lookup table, selected card
-   type, etc.) and writes them into the plugin's configuration items.
+1. **Resolver configuración** — acción nativa *Execute Server-side Code*:
+   PL/SQL con bind variables que resuelve IP/Puerto/Medio de Pago/Monto
+   según la lógica propia de tu app (tabla de terminales, tipo de tarjeta
+   elegido, etc.) y los escribe en los items de configuración del plugin.
 
-   > Use bind variables (`:ITEM_NAME`) with "Items to Submit" / "Items to
-   > Return" — not `apex_application.g_x01` + `sys.htp.p`. That other
-   > pattern is for a page-level Ajax Callback **process** invoked by hand
-   > via `apex.server.process(...)` from JavaScript — a different APEX
-   > mechanism with different syntax. Mixing them up means the action
-   > silently sets nothing, with no visible error.
+   > Usar bind variables (`:ITEM`) con "Items to Submit"/"Items to Return"
+   > — no `apex_application.g_x01` + `sys.htp.p`. Ese otro patrón es para
+   > un **proceso de página Ajax Callback** invocado a mano con
+   > `apex.server.process(...)` desde JavaScript — un mecanismo distinto de
+   > APEX, con sintaxis distinta. Mezclarlos hace que la acción no setee
+   > nada, sin ningún error visible.
 
-2. **The plugin's own action** — the Dynamic Action *POS Bancard - Cobro
-   directo (cliente)*, with the 11 attributes mapped to your page's items.
+2. **La acción del plugin en sí** — la Dynamic Action *POS Bancard - Cobro
+   directo (cliente)*, con los 11 atributos mapeados a los items propios de
+   tu página.
 
-3. **Map the result** — a **separate Change event** (not a third chained
-   action) on one of the plugin's destination items, that copies the raw
-   result into your form's real fields.
+3. **Mapear el resultado** — un evento **Change** separado (no una tercera
+   acción encadenada) sobre uno de los items destino del plugin, que copia
+   el resultado crudo a los items reales de tu formulario.
 
-   > Why a separate event and not a third chained action: the plugin's own
-   > action runs asynchronously (several `fetch()` calls with `.then()`)
-   > without telling the Dynamic Action engine to wait — as far as APEX is
-   > concerned, the action "finishes" as soon as it's triggered, not when
-   > the POS responds. A chained action right after it would run
-   > immediately, before there's any result. The plugin does **not**
-   > suppress the `change` event when it sets its destination items, so
-   > binding a separate Change-triggered action on one of them (e.g. the
-   > "Nro Boleta" item) always fires once — and only once — a result is
-   > actually in.
+   > Por qué un evento separado y no una tercera acción encadenada: la
+   > acción del plugin corre de forma asíncrona (varios `fetch()` con
+   > `.then()`) sin avisarle al motor de Dynamic Actions que espere — para
+   > APEX, la acción "termina" apenas se dispara, no cuando el POS
+   > responde. Una acción encadenada después se ejecutaría de inmediato,
+   > antes de tener resultado. El plugin no suprime el evento `change` al
+   > setear sus items destino, así que un evento Change separado sobre uno
+   > de ellos (por ejemplo, "Nro Boleta") siempre dispara una vez que el
+   > resultado realmente está.
 
-### The plugin's 11 attributes
+### Los 11 atributos del plugin
 
-| # | Attribute | Item content | Required |
+| # | Atributo | Contenido del item | Oblig. |
 |---|---|---|---|
-| 1 | Item: IP del POS | Terminal's local IP | Yes |
-| 2 | Item: Puerto del POS | Terminal's port | Yes |
-| 3 | Item: Medio de Pago | Payment method code (see table below) | Yes |
-| 4 | Item: Monto | Amount to charge, **plain number** (no thousands separator) | Yes |
-| 5 | Item: Datos Adicionales (JSON) | JSON depending on the method — see table below. Leave empty if the method doesn't need it. | No |
-| 6 | Item destino: Nro Boleta/Autorización | raw `nroBoleta` / `codigoAutorizacion` | Yes |
-| 7 | Item destino: Issuer ID | raw `issuerId` (e.g. `VD`, `MC`, `ZM`) — **not mapped** to any catalog | Yes |
-| 8 | Item destino: Monto Cobrado | Charged amount, plain number | Yes |
-| 9 | Item destino: Fecha/Hora de la Operación | Timestamp in **ISO 8601** | Yes |
-| 10 | Item destino: Nro de Referencia | generated `facturaNro` (`Date.now()`) | Yes |
-| 11 | Item destino: Resultado Completo (JSON) | full raw POS response | No |
+| 1 | Item: IP del POS | IP local del terminal | Sí |
+| 2 | Item: Puerto del POS | Puerto del terminal | Sí |
+| 3 | Item: Medio de Pago | Código del medio (ver tabla siguiente) | Sí |
+| 4 | Item: Monto | Monto a cobrar, **número plano** (sin puntos de miles) | Sí |
+| 5 | Item: Datos Adicionales (JSON) | JSON según el medio — ver tabla siguiente | No |
+| 6 | Item destino: Nro Boleta/Autorización | `nroBoleta`/`codigoAutorizacion` crudo | Sí |
+| 7 | Item destino: Issuer ID | `issuerId` crudo (ej. `VD`, `MC`, `ZM`) — **sin mapear** | Sí |
+| 8 | Item destino: Monto Cobrado | Monto cobrado, número plano | Sí |
+| 9 | Item destino: Fecha/Hora de la Operación | Fecha/hora en **ISO 8601** | Sí |
+| 10 | Item destino: Nro de Referencia | `facturaNro` generado (`Date.now()`) | Sí |
+| 11 | Item destino: Resultado Completo (JSON) | Respuesta cruda completa del POS | No |
 
-### Piece 1 — example PL/SQL (adapt to your own terminal-lookup table)
+### Pieza 1 — PL/SQL de ejemplo (adaptar a tu propia tabla de terminales)
 
 ```plsql
 declare
-  l_ip_pos     my_terminals_table.ip_pos%type;
-  l_puerto_pos my_terminals_table.puerto_pos%type;
+  l_ip_pos     mi_tabla_terminales.ip_pos%type;
+  l_puerto_pos mi_tabla_terminales.puerto_pos%type;
 begin
   select t.ip_pos, t.puerto_pos into l_ip_pos, l_puerto_pos
-    from my_terminals_table t
-   where t.branch_id = :P_BRANCH_ID
-     and t.register   = :P_REGISTER
-     and t.active      = 'Y';
+    from mi_tabla_terminales t
+   where t.id_sucursal = :P_ID_SUCURSAL
+     and t.puesto       = :P_PUESTO
+     and t.activo        = 'S';
 
   :P_POS_IP     := l_ip_pos;
   :P_POS_PUERTO := to_char(l_puerto_pos);
-  :P_POS_MEDIO_PAGO := case :P_CARD_TYPE
-                          when 'DEBIT' then 'TARJETA_DEBITO'
+  :P_POS_MEDIO_PAGO := case :P_TIPO_TARJETA
+                          when 4 then 'TARJETA_DEBITO'
                           else 'TARJETA_CONTADO'
                         end;
-  :P_POS_MONTO_PLANO := trim(replace(:P_AMOUNT, '.', ''));
+  :P_POS_MONTO_PLANO := trim(replace(:P_MONTO, '.', ''));
 exception
   when no_data_found then
-    raise_application_error(-20001, 'No POS terminal configured for this register.');
+    raise_application_error(-20001, 'No hay POS Bancard configurado para este puesto de cobro.');
 end;
 ```
 
-*Items to Submit:* the items the query needs to read (`P_BRANCH_ID,P_REGISTER,P_CARD_TYPE,P_AMOUNT`).
-*Items to Return:* the items the action writes (`P_POS_IP,P_POS_PUERTO,P_POS_MEDIO_PAGO,P_POS_MONTO_PLANO`).
+*Items to Submit:* los items que la consulta necesita leer
+(`P_ID_SUCURSAL,P_PUESTO,P_TIPO_TARJETA,P_MONTO`).
+*Items to Return:* los items que la acción escribe
+(`P_POS_IP,P_POS_PUERTO,P_POS_MEDIO_PAGO,P_POS_MONTO_PLANO`).
 
-### Piece 3 — example result mapping
+### Pieza 3 — mapeo del resultado (ejemplo)
 
-**When:** Change · **Selection Type:** Item(s) → the "Nro Boleta/Autorización"
-destination item (attribute 6) from piece 2. **Action:** Execute JavaScript
-Code.
+**When:** Change · **Selection Type:** Item(s) → el item destino "Nro
+Boleta/Autorización" (atributo 6) de la pieza 2. **Action:** Execute
+JavaScript Code.
 
 ```javascript
-function formatThousands(n) {
+function formatMiles(n) {
   n = Math.round(Number(n) || 0);
   return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
 }
-apex.item("MY_RECEIPT_NUMBER_ITEM").setValue(
-  formatThousands(apex.item("P_POS_NRO_BOLETA").getValue())
+apex.item("MI_ITEM_NRO_CHEQUE_TARJETA").setValue(
+  formatMiles(apex.item("P_POS_NRO_BOLETA").getValue())
 );
-apex.item("MY_AMOUNT_ITEM").setValue(
-  formatThousands(apex.item("P_POS_MONTO_COBRADO").getValue())
+apex.item("MI_ITEM_MONTO").setValue(
+  formatMiles(apex.item("P_POS_MONTO_COBRADO").getValue())
 );
-// Card-brand mapping (issuerId -> your own catalog) also goes here,
-// see "Downstream mapping" below.
+// El mapeo de marca de tarjeta (issuerId -> catalogo propio) tambien va
+// aca, ver "Mapeo aguas abajo" mas abajo.
 ```
 
-Formatting with a thousands separator before `setValue()` applies if your
-destination item uses a mask like `999G999G999G999G999G999G990` (Number
-Field). If your item is free text or an unmasked number, a plain
-`setValue()` is enough.
+Formatear con separador de miles antes de `setValue()` aplica si tu item
+destino usa una máscara tipo `999G999G999G999G999G999G990` (Number Field).
+Si tu item es texto libre o numérico sin máscara, alcanza con `setValue()`
+directo.
 
-## Supported payment methods
+## Medios de pago soportados
 
-| Code (Item: Medio de Pago) | Bancard endpoint(s) | Datos Adicionales (JSON) |
+| Código (Item: Medio de Pago) | Endpoint(s) Bancard | Datos Adicionales (JSON) |
 |---|---|---|
 | `TARJETA_CONTADO` | `venta-ux` → `descuento` | — |
-| `TARJETA_CUOTAS` | `venta-ux` (installments) → `descuento` | `{"cuotas":N,"plan":N}` |
+| `TARJETA_CUOTAS` | `venta-ux` (con cuotas) → `descuento` | `{"cuotas":N,"plan":N}` |
 | `TARJETA_DEBITO` | `venta/debito` → `descuento` | — |
 | `TARJETA_CREDITO` | `venta/credito` → `descuento` | `{"cuotas":N,"plan":N}` |
-| `QR` | `venta-qr` | `{"montoVuelto":N,"promotions":[...]}` (optional) |
+| `QR` | `venta-qr` | `{"montoVuelto":N,"promotions":[...]}` (opcional) |
 | `QR_PIX` | `venta-qr-pix` | `{"pix_payer_cpf":"...","pix_payer_phone":"..."}` |
 | `EXTRACCION_QR` | `extraccion-qr` | — |
 | `CANJE` | `venta-canje` | — |
 | `CANJE_QR` | `venta-canje-qr` | — |
 | `BILLETERA` | `venta-billetera` | `{"billetera":"ZIM","cuenta":"123456"}` |
 
-`anulacion`/`consulta-anulacion` (void/query receipts) are deliberately out
-of scope — they're post-sale management operations, not payment methods.
+`anulacion`/`consulta-anulacion` quedan fuera del plugin a propósito: son
+operaciones de gestión post-venta, no medios de pago.
 
-## Downstream mapping (each app's own responsibility)
+## Mapeo aguas abajo (a cargo de cada app)
 
-Each company keeps its own card-brand catalog (`issuerId → internal brand
-id`). The plugin doesn't know it; the mapping happens in the page, typically
-in the same "Change" event from piece 3:
+Cada empresa mantiene su propio catálogo de marcas de tarjeta (`issuerId →
+id_marca_tarjeta` propio). El plugin no lo conoce; el mapeo se hace en la
+página, típicamente en el mismo evento "Change" de la pieza 3:
 
 ```javascript
-var myBrand = MY_BRAND_CATALOG[ apex.item('P_POS_ISSUER_ID').getValue() ] || 99;
-apex.item('MY_CARD_BRAND_ITEM').setValue(myBrand);
+var marcaPropia = MI_CATALOGO_MARCAS[ apex.item('P_POS_ISSUER_ID').getValue() ] || 99;
+apex.item('MI_ITEM_MARCA_TARJETA').setValue(marcaPropia);
 
-// Same applies to date formatting: convert P_POS_FECHA (ISO 8601)
-// to whatever format your save process expects.
+// Lo mismo aplica a formato de fecha: convertir P_POS_FECHA (ISO 8601)
+// al formato que tu proceso de guardado espere.
 ```
 
-This is intentionally each app's responsibility, not the plugin's — it's
-what lets the same, unmodified plugin be installed in any application, with
-its own brand catalog and its own save format.
+Este mapeo es intencionalmente responsabilidad de cada app, no del plugin:
+es lo que permite instalar el mismo plugin, sin modificarlo, en cualquier
+aplicación con su propio catálogo de marcas y su propio formato de guardado.
 
-## Testing without a physical terminal
+## Probar sin terminal físico
 
-`simulator/pos_simulator.py` implements all 13 real Bancard protocol
-endpoints, runs on the same machine or over the LAN, no external
-dependencies (standard Python 3 only):
+`simulator/pos_simulator.py` implementa los 13 endpoints reales del
+protocolo Bancard v1.5.0, corre en la misma máquina o en la LAN, sin
+dependencias externas (solo Python 3 estándar):
 
 ```
 python simulator/pos_simulator.py --port 3000 --delay-cliente 5-10 --random
 ```
 
-- `--delay-cliente N` or `N-M`: simulates how long a real customer takes to
-  complete the transaction (fixed value or random range).
-- `--random`: instead of always approving, randomly rejects, times out, or
-  fails the `/pos/eco` check — tunable with `--fail-rate` / `--timeout-rate`
-  / `--eco-fail-rate`.
-- `--interactive`: approve/reject/timeout each sale from the console
-  instead, to reproduce a specific case.
+- `--delay-cliente N` o `N-M`: simula el tiempo que tarda el cliente en
+  completar la operación (número fijo o rango aleatorio, distinto por cada
+  venta).
+- `--random`: en vez de aprobar siempre, rechaza ventas al azar (fondos
+  insuficientes, tarjeta vencida/bloqueada, etc.), hace timeout, o falla el
+  propio `/pos/eco` — ajustable con `--fail-rate` / `--timeout-rate` /
+  `--eco-fail-rate`.
+- `--interactive`: aprobar/rechazar/timeout cada venta por consola, para
+  reproducir un caso puntual.
 
-See [`simulator/README.md`](simulator/README.md) for the full flag
-reference. To try the plugin alone, with no APEX app at all, open
-[`js/demo.html`](js/demo.html) — a standalone harness that calls the plugin
-the same way a real Dynamic Action would.
+Ver [`simulator/README.md`](simulator/README.md) para la referencia
+completa de endpoints y flags. Para probar el plugin solo, sin ninguna app
+APEX: [`js/demo.html`](js/demo.html), un harness standalone que llama al
+plugin igual que lo haría una Dynamic Action real.
 
 ## Troubleshooting
 
-| Symptom | Likely cause |
+| Síntoma | Causa probable |
 |---|---|
-| `Failed to fetch` against a **real** terminal | Missing `chrome://flags` + "Allow CORS" extension setup on that machine |
-| `Failed to fetch` against the **simulator** | `--delay-cliente` is close to or above the plugin's 90s timeout — lower the delay range, not a real network issue |
-| "POS did not respond in time" | Terminal off, wrong IP/port, disconnected network cable, or (against the simulator) `--random` rolled a timeout |
-| Configuration items (IP/Port/Payment Method) arrive empty at the plugin's action | The "Execute Server-side Code" action (piece 1) is written with `apex_application.g_x01` + `sys.htp.p` instead of bind variables — see the note under piece 1. No error is thrown, it just sets nothing. |
-| The plugin's action, chained right after another async action, never gets its attributes | Move the result mapping to a separate "Change" event (piece 3), not a third chained action — see the note under piece 3. |
-| Charge button doesn't show/hide live as the cashier fills the form | A server-side (PL/SQL) button condition only evaluates at page render, not on every form change — add your own show/hide Dynamic Action bound to the relevant items. |
+| `Failed to fetch` contra un terminal **real** | Falta configurar `chrome://flags` + extensión "Allow CORS" en esa máquina |
+| `Failed to fetch` contra el **simulador** | `--delay-cliente` muy cerca o por encima del timeout del plugin (90s) — bajar el rango del delay |
+| "El POS no respondió dentro del tiempo de espera" | Terminal apagado, IP/puerto mal configurados, o (contra el simulador) salió el resultado aleatorio de timeout con `--random` |
+| Items de configuración llegan vacíos a la acción del plugin | La acción "Execute Server-side Code" (pieza 1) está escrita con `g_x01`/`sys.htp.p` en vez de bind variables — ver la nota bajo la pieza 1. No tira error, simplemente no setea nada |
+| La acción del plugin encadenada después de otra acción async nunca recibe los atributos | Mover el mapeo del resultado a un evento "Change" separado (pieza 3), no una tercera acción encadenada |
+| El botón de cobro no aparece/desaparece en vivo según lo que elige el cajero | Una condición *server-side* (PL/SQL) se evalúa solo al renderizar — agregar tu propia Dynamic Action de mostrar/ocultar ligada al cambio de los items relevantes |
+| Rompió Page Designer para toda la app (no se puede abrir ninguna Dynamic Action, en ninguna página) | Plugin instalado con un ID chico puesto a mano vía `wwv_flow_api` en vez de un export real o la UI — ver la nota en "Instalación". Desinstalar con `WWV_FLOW_API.REMOVE_PLUGIN` y reinstalar con un export real o por la UI |
 
-## APEX version compatibility
+## Compatibilidad de versiones de APEX
 
-Built and tested on APEX 20.2. The `apex_plugin.t_dynamic_action` /
-`t_dynamic_action_render_result` API this plugin's `render` function uses is
-stable and documented from APEX 20.1 onward — comparing the official
-definitions for [20.1](https://docs.oracle.com/en/database/oracle/application-express/20.1/aeapi/APEX_PLUGIN-Data-Types.html)
-against [24.2](https://docs.oracle.com/en/database/oracle/apex/24.2/aeapi/APEX_PLUGIN-Data-Types.html),
-the `attribute_01`..`attribute_15` fields this plugin uses didn't change;
-24.2 only adds new fields at the end that this plugin doesn't need.
+Desarrollado y probado en APEX 20.2, y **verificado en la práctica** contra
+una instancia 24.2 completamente distinta (ver "Instalación" arriba) — el
+plugin se importó vía Export/Import sin tocar nada y funcionó de punta a
+punta.
 
-SweetAlert2 ships bundled as the plugin's own file, not loaded from an
-external CDN — deliberate, since a strict Content Security Policy
-`script-src` (which Oracle documents strengthening for APEX 24.2) would
-block a `<script>` pointing at an external CDN domain not explicitly
-allow-listed.
+- **La API que usa el `render` del plugin** (`apex_plugin.t_dynamic_action`/
+  `t_dynamic_action_render_result`) es estable y documentada: los 11
+  atributos (`attribute_01`..`attribute_11`) que usa este plugin no
+  cambiaron entre 20.1 y 24.2.
+- **Lo que sí cambió: el paquete interno que usa el propio export/import de
+  Oracle.** El export real de una instancia 20.2 usa `wwv_flow_api.*`; el de
+  una instancia 24.2 usa `wwv_flow_imp.*`/`wwv_flow_imp_shared.*` — paquetes
+  distintos, con al menos un parámetro que desapareció
+  (`p_supported_ui_types`) y uno nuevo que apareció (`p_version_scn`). Esto
+  no afecta al plugin en uso (su lógica no cambió), pero si algún día
+  necesitás tocar el script de instalación a mano, no asumas que la firma es
+  idéntica entre versiones — comparado línea por línea en
+  `install/install_plugin_apex20.sql` vs `install/install_plugin_apex24.sql`.
+- **SweetAlert2 va empaquetado como archivo propio del plugin**, no cargado
+  desde un CDN externo — pensado para instancias con Content Security
+  Policy reforzada (documentado por Oracle para APEX 24.2): un `script-src`
+  estricto bloquearía un `<script>` apuntando a un CDN externo no permitido
+  explícitamente.
+- **APEX 24.1 deprecó el switch "Substitute Attribute Values"** para
+  plugins de región; no afecta a este plugin, que usa el patrón más simple
+  y estable de Dynamic Action (solo `p_render_function`).
 
-Installing through the UI (recommended path above), version compatibility
-is handled by APEX itself — it doesn't depend on any hand-typed `p_release`.
-The `install/*.sql` scripts remain in the repo mainly as a readable
-reference for the plugin's source code.
+## Licencia
 
-## License
-
-MIT — see [`LICENSE`](LICENSE). SweetAlert2, bundled in `js/vendor/`, is
-also MIT-licensed.
+MIT — ver [`LICENSE`](LICENSE). SweetAlert2, empaquetado en `js/vendor/`,
+también es MIT.

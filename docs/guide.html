@@ -1,8 +1,8 @@
 <!doctype html>
-<html lang="en">
+<html lang="es">
 <head>
 <meta charset="utf-8">
-<title>apex-bancard-pos-plugin - Integration Guide</title>
+<title>apex-bancard-pos-plugin - Guía de integración</title>
 <style>
   :root {
     --c-primary: #2B4C7E;
@@ -183,7 +183,7 @@
 </head>
 <body>
 
-<!-- COVER -->
+<!-- PORTADA -->
 <div class="cover">
   <svg class="logo-mark" viewBox="0 0 100 100">
     <circle cx="50" cy="50" r="44" fill="none" stroke="#2FA88A" stroke-width="6"/>
@@ -191,226 +191,228 @@
   </svg>
   <div class="brand">apex-bancard-pos-plugin</div>
   <h1>POS Bancard &ndash; Cobro directo (cliente)</h1>
-  <p class="subtitle">Oracle APEX Dynamic Action plugin: charge a physical Bancard POS terminal directly from the cashier's browser, with no application server in between. Framework-agnostic, drop into any APEX app.</p>
+  <p class="subtitle">Plugin de Dynamic Action para Oracle APEX: cobra con un terminal físico POS Bancard directo desde el navegador del cajero, sin ningún servidor de aplicaciones en el medio. Genérico, instalable en cualquier app APEX.</p>
   <div class="tag">
-    <span>Oracle APEX 20.2 / 22.x / 24.x</span>
+    <span>Oracle APEX 20.2 / 24.x (verificado)</span>
     <span>Dynamic Action plugin</span>
-    <span>MIT License</span>
+    <span>Licencia MIT</span>
   </div>
   <div class="footer-note">github.com/silviosotelo/apex-bancard-pos-plugin</div>
 </div>
 
-<!-- 1. WHY / HOW IT WORKS -->
+<!-- 1. POR QUÉ / CÓMO FUNCIONA -->
 <div class="page">
-  <h2 class="section-title"><span class="num">1</span>Why it exists, and how it works</h2>
+  <h2 class="section-title"><span class="num">1</span>Por qué existe y cómo funciona</h2>
 
-  <p>A server-to-server integration with a Bancard POS terminal only works <strong>if the application server can reach the terminal's local IP over the network</strong>. In a lot of real deployments the app server and the terminal sit on different network segments, and that path never connects.</p>
+  <p>Una integración servidor-a-servidor con un terminal POS Bancard funciona solo <strong>si el servidor de aplicaciones llega por red a la IP local del terminal</strong>. En muchos despliegues reales el servidor y el terminal están en segmentos de red distintos, y ese camino nunca conecta.</p>
 
-  <p>This plugin is the alternative path: the machine that <em>is</em> on the same LAN as the terminal is the <strong>cashier's browser</strong>, not the server. The plugin does a direct <code>fetch()</code> from the browser to the terminal's local IP/port &mdash; no backend in between.</p>
+  <p>Este plugin es la vía alternativa: quien sí está en la misma LAN que el terminal es <strong>el navegador del cajero</strong>, no el servidor. El plugin hace <code>fetch()</code> directo desde el navegador al IP/puerto local del POS &mdash; sin ningún backend en el medio.</p>
 
   <div class="callout">
-    <strong>Coexists, doesn't replace.</strong> Built to work alongside an existing server-to-server integration, if you have one: use that path where the server can reach the POS, use this plugin where it can't. Both can live on the same page.
+    <strong>Coexiste, no reemplaza.</strong> Pensado para funcionar junto a una integración servidor-a-servidor existente, si ya tenés una: usá esa vía donde el servidor llegue al POS, y este plugin donde no llegue. Ambos caminos pueden convivir en la misma página.
   </div>
 
-  <h3>Execution flow</h3>
+  <h3>Flujo de ejecución</h3>
   <ol class="steps">
-    <li>The cashier triggers the Dynamic Action (e.g. clicking a "Charge with POS" button).</li>
-    <li>The plugin's JavaScript does <code>POST /pos/eco</code> to the terminal (5s timeout) to confirm it's awake.</li>
-    <li>Depending on the configured <strong>Medio de Pago</strong>, it calls the matching terminal endpoint (90s timeout) &mdash; card, QR, e-wallet, etc.</li>
-    <li>Writes the terminal's <strong>raw</strong> result into the configured destination items.</li>
-    <li>All feedback &mdash;loading, success, error&mdash; shown with <strong>SweetAlert2</strong>, bundled with the plugin (no CDN dependency).</li>
+    <li>El cajero dispara la Dynamic Action (por ejemplo, el click de un botón "Cobrar con POS").</li>
+    <li>El JavaScript del plugin hace <code>POST /pos/eco</code> al terminal (timeout 5s) para confirmar que está despierto.</li>
+    <li>Según el <strong>Medio de Pago</strong> configurado, llama al endpoint correspondiente del terminal (timeout 90s, pensado para dar margen real a que el cliente complete la operación).</li>
+    <li>Escribe el resultado <strong>crudo</strong> del POS en los items destino configurados, disparando su evento <code>change</code> (no lo suprime) para que la app pueda reaccionar.</li>
+    <li>Todo el feedback visual &mdash;loader, éxito, error&mdash; se muestra con <strong>SweetAlert2</strong>, empaquetado con el plugin (sin CDN externo, sin depender de <code>apex.message</code>).</li>
   </ol>
 
-  <p>No round-trip to an application server in between: the entire Bancard protocol runs in the browser. The reference number (<code>facturaNro</code>) is generated with <code>Date.now()</code>, no database sequence involved.</p>
+  <p>No hay ningún round-trip a un servidor de aplicaciones en el medio: todo el protocolo Bancard corre en el navegador. El número de referencia (<code>facturaNro</code>) se genera con <code>Date.now()</code>, sin depender de ninguna secuencia de base de datos.</p>
 
-  <h3>Feedback: SweetAlert2 modal, always</h3>
+  <h3>Feedback: siempre modal de SweetAlert2</h3>
   <div class="grid3">
     <figure>
-      <img src="img/loader_spinner.png" alt="Loading modal with spinner">
-      <figcaption>Loading &mdash; hand-built spinner in the modal's HTML (doesn't rely on <code>Swal.showLoading()</code>, see note below). Never shows a button.</figcaption>
+      <img src="img/loader_spinner.png" alt="Modal de carga con spinner">
+      <figcaption>Cargando &mdash; spinner armado a mano en el <code>html</code> del modal (no depende de <code>Swal.showLoading()</code>, ver nota abajo). Nunca muestra ningún botón.</figcaption>
     </figure>
     <figure>
-      <img src="img/resultado_exito.png" alt="Success modal with Aceptar button">
-      <figcaption>Success &mdash; modal with a green icon and an "Aceptar" button, not an auto-dismissing toast.</figcaption>
+      <img src="img/resultado_exito.png" alt="Modal de exito con boton Aceptar">
+      <figcaption>Éxito &mdash; modal con ícono verde y botón "Aceptar", no un toast que desaparece solo.</figcaption>
     </figure>
     <figure>
-      <img src="img/error_validacion.png" alt="Error modal with Aceptar button">
-      <figcaption>Error &mdash; same pattern for any failure: item validation, POS decline, timeout, or network/CORS issue.</figcaption>
+      <img src="img/error_validacion.png" alt="Modal de error con boton Aceptar">
+      <figcaption>Error &mdash; mismo patrón para cualquier falla: validación de items, rechazo del POS, timeout, o problema de red/CORS.</figcaption>
     </figure>
   </div>
 
   <div class="callout warn">
-    <strong>Technical note &mdash; why the loader doesn't use <code>Swal.showLoading()</code>.</strong> That SweetAlert2 method works by converting the "Confirm" button into the spinner; if there's no visible button to convert (<code>showConfirmButton:false</code>), the spinner has nowhere to render. And if the swap isn't reverted cleanly before the next alert, the "Confirm" button can stay hidden forever. Instead, the plugin builds the spinner by hand in the modal's <code>html</code> (reusing the <code>.swal2-loader</code> CSS class already in the bundle) with <code>showConfirmButton:false</code> fixed: there's never a button during loading, and never anything to revert.
+    <strong>Nota técnica &mdash; por qué el loader no usa <code>Swal.showLoading()</code>.</strong> Ese método de SweetAlert2 funciona convirtiendo el botón "Confirmar" en el spinner; si no hay un botón visible para convertir (<code>showConfirmButton:false</code>), el spinner no tiene dónde insertarse. Y si el swap no se revierte bien antes de la siguiente alerta, el botón "Confirmar" puede quedar escondido para siempre. En vez de depender de ese acople, el plugin arma el spinner a mano en el <code>html</code> del modal (reusando la clase CSS <code>.swal2-loader</code> del bundle) con <code>showConfirmButton:false</code> fijo: nunca hay botón durante la carga, y nunca hay nada que revertir.
   </div>
 
   <div class="callout warn">
-    <strong>Mandatory browser requirement (real terminal only).</strong> The Bancard terminal speaks plain HTTP and doesn't send CORS headers. If your app is served over HTTPS, the browser blocks the <code>fetch()</code> unless, once per cashier machine: (1) <code>chrome://flags/#block-insecure-private-network-requests</code> is disabled, and (2) an "Allow CORS"-type extension is installed and enabled. Not needed against the bundled simulator (section 5): it already answers proper CORS headers.
+    <strong>Requisito obligatorio del navegador (solo contra un terminal real).</strong> El terminal Bancard habla HTTP plano y no manda headers CORS. Si la app se sirve por HTTPS, el navegador bloquea el <code>fetch()</code> salvo que, una única vez por máquina de cobro: (1) se deshabilite <code>chrome://flags/#block-insecure-private-network-requests</code>, y (2) se instale y active una extensión tipo "Allow CORS". <strong>No hace falta contra el simulador incluido</strong> (sección 5): ya responde los headers CORS correctos.
   </div>
 </div>
 
-<!-- 2. INSTALLATION -->
+<!-- 2. INSTALACIÓN -->
 <div class="page">
-  <h2 class="section-title"><span class="num">2</span>Installation</h2>
+  <h2 class="section-title"><span class="num">2</span>Instalación</h2>
 
-  <h3>Recommended: through the APEX UI</h3>
-  <p><strong>Shared Components &rarr; Plug-ins &rarr; Create Plugin</strong>, filling in the fields by hand:</p>
+  <h3>Recomendado: exports reales verificados</h3>
+  <p><code>install/install_plugin_apex20.sql</code> e <code>install/install_plugin_apex24.sql</code> <strong>no son scripts escritos a mano</strong> &mdash; son exports reales de Oracle (Shared Components &rarr; Plugins &rarr; Export), con los datos identificatorios de origen reemplazados por placeholders. El resto (IDs internos, los 11 atributos, el JS empaquetado) es exactamente el export real, byte a byte.</p>
+
+  <p>Esto está verificado en la práctica: el de 24.2 se generó <strong>después</strong> de importar el export de 20.2 en una aplicación APEX completamente distinta &mdash;otra instancia, otro workspace, otra app&mdash; vía Import File, sin tocar nada a mano, y funcionó sin problema.</p>
+
   <ol class="steps">
-    <li><strong>Identification:</strong> Name <code>BANCARD.POS_CLIENTE</code>, Display Name "POS Bancard - Cobro directo (cliente)", Type <em>Dynamic Action</em>, Category <em>JavaScript</em>.</li>
-    <li><strong>Source &rarr; PL/SQL Code:</strong> the <code>render</code> function (full code in <code>install/manual_ui_install.md</code>).</li>
-    <li><strong>Callbacks &rarr; Render Function Name:</strong> <code>render</code>.</li>
-    <li><strong>Settings:</strong> API Version 1, Supported UI Types Desktop, Substitute Attributes = Yes.</li>
-    <li><strong>Files:</strong> upload <code>js/pos_bancard_cliente_bundle.js</code> (SweetAlert2 + plugin runtime, single file &mdash; two separate files in <code>JavaScript File URLs</code> render as one broken <code>&lt;script&gt;</code> tag).</li>
-    <li><strong>Custom Attributes:</strong> the 11 attributes listed in section 3, all <code>Attribute Scope = Component</code>, <code>Type = Page Item</code>.</li>
+    <li>Editar los 3 valores marcados <code>REPLACE</code> al principio del script que corresponda a tu versión (<code>p_default_workspace_id</code> / <code>p_default_application_id</code> / <code>p_default_owner</code>).</li>
+    <li>Correr en <strong>SQL Workshop &rarr; SQL Scripts</strong> (no SQL Commands: el script supera el límite de 32&nbsp;KB).</li>
+    <li>Verificar: <strong>Shared Components &rarr; Plug-ins</strong> debe mostrar "POS Bancard &ndash; Cobro directo (cliente)".</li>
   </ol>
-  <p class="muted">Full step-by-step with exact copy-paste field values: <code>install/manual_ui_install.md</code>.</p>
 
   <div class="callout danger">
-    <strong>Why not just run the SQL script?</strong> The <code>install/*.sql</code> scripts use <code>wwv_flow_api.create_plugin</code>/<code>create_plugin_attribute</code> with manually chosen IDs. In practice, a hand-picked ID can end up as a literal small number instead of a real APEX-generated ID (every other plugin in a real app has a 15-20 digit ID). A small ID can collide with something else in the instance's internal ID space, and since plugin metadata loads application-wide (not per-page), a single bad ID can break Page Designer for an entire application. Installing through the UI avoids this entirely &mdash; it's the same code path Oracle uses to generate every other plugin's ID.
+    <strong>Por qué esto es seguro y escribir el script a mano no lo es.</strong> Un export real usa un ID interno de 15-20 dígitos para el plugin, generado por la secuencia real de la instancia &mdash; al reimportarlo, ese número prácticamente no puede colisionar con nada. Un script escrito a mano con un ID chico inventado (ej. <code>wwv_flow_api.id(9201)</code>) sí puede colisionar con algún objeto real y viejo de la instancia &mdash; y como la metadata de plugins se carga a nivel de toda la aplicación, no por página, una sola colisión puede romper Page Designer para <strong>toda la app</strong>, en cualquier página, para cualquier desarrollador. No es una hipótesis: pasó exactamente así en el desarrollo de este plugin, y se resolvió desinstalando con <code>WWV_FLOW_API.REMOVE_PLUGIN</code> y reinstalando con un export real.
   </div>
 
-  <h3>Installing into another app / workspace</h3>
-  <p>Once installed anywhere, the standard APEX way to move it: <strong>Shared Components &rarr; Plug-ins &rarr;</strong> open the plugin <strong>&rarr; Export</strong>, then in the target app <strong>Shared Components &rarr; Plug-ins &rarr; Import File</strong>. APEX resolves the target workspace/app/owner automatically and generates a real ID.</p>
+  <h3>Alternativa: por la UI de APEX</h3>
+  <p><strong>Shared Components &rarr; Plug-ins &rarr; Create Plugin</strong>, cargando los valores a mano. Guía completa con todos los textos exactos para copiar/pegar: <code>install/manual_ui_install.md</code>. Mismo resultado que un export real: APEX genera un ID propio, sin riesgo de colisión.</p>
+
+  <h3>Instalar en otra app / otro workspace</h3>
+  <p>Una vez instalado, la vía estándar de APEX: <strong>Shared Components &rarr; Plug-ins &rarr;</strong> abrir el plugin <strong>&rarr; Export</strong>, y en la app destino <strong>Shared Components &rarr; Plug-ins &rarr; Import File</strong>. APEX resuelve el workspace/app/owner destino automáticamente y genera un ID real.</p>
 </div>
 
-<!-- 3. INTEGRATION -->
+<!-- 3. INTEGRACIÓN -->
 <div class="page">
-  <h2 class="section-title"><span class="num">3</span>Integrating it into a charge/payment page</h2>
+  <h2 class="section-title"><span class="num">3</span>Cómo integrarlo en una página de cobro</h2>
 
-  <p>The pattern that works end-to-end has <strong>three pieces</strong> in the same Dynamic Action:</p>
+  <p>El patrón que funciona de punta a punta tiene <strong>tres piezas</strong> en la misma Dynamic Action:</p>
 
   <div class="grid3">
     <figure style="text-align:left; background:#FAFBFC; border-radius:8px; padding:12px 14px; margin:0;">
-      <strong style="color:var(--c-primary-dark)">1. Resolve configuration</strong>
-      <p class="muted" style="margin-top:6px;">Native <em>Execute Server-side Code</em> action: PL/SQL with bind variables resolving IP/Port/Payment Method/Amount from your own app's logic, written into the plugin's configuration items.</p>
+      <strong style="color:var(--c-primary-dark)">1. Resolver configuración</strong>
+      <p class="muted" style="margin-top:6px;">Acción nativa <em>Execute Server-side Code</em>: PL/SQL con bind variables que resuelve IP/Puerto/Medio de Pago/Monto según la lógica propia de tu app, escribiéndolos en los items de configuración del plugin.</p>
     </figure>
     <figure style="text-align:left; background:#FAFBFC; border-radius:8px; padding:12px 14px; margin:0;">
-      <strong style="color:var(--c-primary-dark)">2. The plugin's action</strong>
-      <p class="muted" style="margin-top:6px;">The Dynamic Action itself (<em>POS Bancard - Cobro directo (cliente)</em>), with the 11 attributes mapped to your page's items.</p>
+      <strong style="color:var(--c-primary-dark)">2. Acción del plugin</strong>
+      <p class="muted" style="margin-top:6px;">La Dynamic Action del plugin en sí (<em>POS Bancard - Cobro directo (cliente)</em>), con los 11 atributos mapeados a los items de tu página.</p>
     </figure>
     <figure style="text-align:left; background:#FAFBFC; border-radius:8px; padding:12px 14px; margin:0;">
-      <strong style="color:var(--c-primary-dark)">3. Map the result</strong>
-      <p class="muted" style="margin-top:6px;">A separate <strong>Change</strong> event on one of the plugin's destination items (not a chained action) that copies the raw result into your form's real fields.</p>
+      <strong style="color:var(--c-primary-dark)">3. Mapear el resultado</strong>
+      <p class="muted" style="margin-top:6px;">Un evento <strong>Change</strong> separado (no una acción encadenada) sobre uno de los items destino, que copia el resultado crudo a tu formulario real.</p>
     </figure>
   </div>
 
   <div class="callout warn">
-    <strong>Why piece 3 is a separate event, not a third chained action.</strong> The plugin's action runs asynchronously without telling the Dynamic Action engine to wait &mdash; as far as APEX is concerned, it "finishes" as soon as it's triggered, not when the POS responds. A chained action right after it would run immediately, before any result exists. The plugin does not suppress the <code>change</code> event on its destination items, so a separate Change-triggered action on one of them always fires once a result is actually in.
+    <strong>Por qué la pieza 3 es un evento separado, no una tercera acción encadenada.</strong> La acción del plugin corre de forma asíncrona sin avisarle al motor de Dynamic Actions que espere &mdash; para APEX, "termina" apenas se dispara, no cuando el POS responde. Una acción encadenada después se ejecutaría de inmediato, antes de tener resultado. El plugin no suprime el evento <code>change</code> al setear sus items destino, así que un evento Change separado sobre uno de ellos siempre dispara una vez que el resultado realmente está.
   </div>
 
-  <h3>The plugin's 11 attributes</h3>
+  <h3>Los 11 atributos del plugin</h3>
   <table>
-    <tr><th>#</th><th>Attribute</th><th>Item content</th><th>Req.</th></tr>
-    <tr><td>1</td><td>Item: IP del POS</td><td>Terminal's local IP</td><td>Yes</td></tr>
-    <tr><td>2</td><td>Item: Puerto del POS</td><td>Terminal's port</td><td>Yes</td></tr>
-    <tr><td>3</td><td>Item: Medio de Pago</td><td>Payment method code (section 4)</td><td>Yes</td></tr>
-    <tr><td>4</td><td>Item: Monto</td><td>Amount, plain number (no thousands separator)</td><td>Yes</td></tr>
-    <tr><td>5</td><td>Item: Datos Adicionales (JSON)</td><td>JSON depending on the method &mdash; section 4</td><td>No</td></tr>
-    <tr><td>6</td><td>Item destino: Nro Boleta/Autorización</td><td>raw <code>nroBoleta</code> / <code>codigoAutorizacion</code></td><td>Yes</td></tr>
-    <tr><td>7</td><td>Item destino: Issuer ID</td><td>raw <code>issuerId</code> (e.g. <code>VD</code>, <code>MC</code>) &mdash; unmapped</td><td>Yes</td></tr>
-    <tr><td>8</td><td>Item destino: Monto Cobrado</td><td>Charged amount, plain number</td><td>Yes</td></tr>
-    <tr><td>9</td><td>Item destino: Fecha/Hora de la Operación</td><td>Timestamp, ISO&nbsp;8601</td><td>Yes</td></tr>
-    <tr><td>10</td><td>Item destino: Nro de Referencia</td><td>generated <code>facturaNro</code> (<code>Date.now()</code>)</td><td>Yes</td></tr>
-    <tr><td>11</td><td>Item destino: Resultado Completo (JSON)</td><td>full raw POS response</td><td>No</td></tr>
+    <tr><th>#</th><th>Atributo</th><th>Contenido del item</th><th>Oblig.</th></tr>
+    <tr><td>1</td><td>Item: IP del POS</td><td>IP local del terminal</td><td>Sí</td></tr>
+    <tr><td>2</td><td>Item: Puerto del POS</td><td>Puerto del terminal</td><td>Sí</td></tr>
+    <tr><td>3</td><td>Item: Medio de Pago</td><td>Código del medio (sección 4)</td><td>Sí</td></tr>
+    <tr><td>4</td><td>Item: Monto</td><td>Monto a cobrar, número plano</td><td>Sí</td></tr>
+    <tr><td>5</td><td>Item: Datos Adicionales (JSON)</td><td>JSON según el medio &mdash; sección 4</td><td>No</td></tr>
+    <tr><td>6</td><td>Item destino: Nro Boleta/Autorización</td><td><code>nroBoleta</code>/<code>codigoAutorizacion</code> crudo</td><td>Sí</td></tr>
+    <tr><td>7</td><td>Item destino: Issuer ID</td><td><code>issuerId</code> crudo &mdash; sin mapear</td><td>Sí</td></tr>
+    <tr><td>8</td><td>Item destino: Monto Cobrado</td><td>Monto cobrado, número plano</td><td>Sí</td></tr>
+    <tr><td>9</td><td>Item destino: Fecha/Hora de la Operación</td><td>ISO&nbsp;8601</td><td>Sí</td></tr>
+    <tr><td>10</td><td>Item destino: Nro de Referencia</td><td><code>facturaNro</code> generado</td><td>Sí</td></tr>
+    <tr><td>11</td><td>Item destino: Resultado Completo (JSON)</td><td>Respuesta cruda completa</td><td>No</td></tr>
   </table>
 
-  <h3>Piece 1 &mdash; example PL/SQL</h3>
+  <h3>Pieza 1 &mdash; PL/SQL de ejemplo</h3>
   <div class="callout danger">
-    <strong>Bind variables, not <code>apex_application.g_x01</code>.</strong> "Execute Server-side Code" reads/writes items with <code>:ITEM_NAME</code> directly, via "Items to Submit"/"Items to Return" &mdash; it doesn't wait for or print JSON with <code>sys.htp.p</code>. That other pattern belongs to a page-level Ajax Callback <strong>process</strong> invoked from JavaScript via <code>apex.server.process(...)</code> &mdash; a different mechanism, different syntax. Mixing them means the action silently sets nothing.
+    <strong>Bind variables, no <code>apex_application.g_x01</code>.</strong> "Execute Server-side Code" lee/escribe items con <code>:ITEM</code> directo (vía "Items to Submit"/"Items to Return"), y no espera ni imprime JSON con <code>sys.htp.p</code>. Ese otro patrón es para un <strong>proceso de página Ajax Callback</strong> invocado a mano desde JavaScript &mdash; mecanismo distinto, sintaxis distinta. Mezclarlos hace que la acción no setee nada, sin ningún error visible.
   </div>
   <pre><code>declare
-  l_ip_pos     my_terminals_table.ip_pos%type;
-  l_puerto_pos my_terminals_table.puerto_pos%type;
+  l_ip_pos     mi_tabla_terminales.ip_pos%type;
+  l_puerto_pos mi_tabla_terminales.puerto_pos%type;
 begin
   select t.ip_pos, t.puerto_pos into l_ip_pos, l_puerto_pos
-    from my_terminals_table t
-   where t.branch_id = :P_BRANCH_ID
-     and t.register   = :P_REGISTER
-     and t.active      = 'Y';
+    from mi_tabla_terminales t
+   where t.id_sucursal = :P_ID_SUCURSAL
+     and t.puesto       = :P_PUESTO
+     and t.activo        = 'S';
 
   :P_POS_IP     := l_ip_pos;
   :P_POS_PUERTO := to_char(l_puerto_pos);
-  :P_POS_MEDIO_PAGO := case :P_CARD_TYPE
-                          when 'DEBIT' then 'TARJETA_DEBITO'
+  :P_POS_MEDIO_PAGO := case :P_TIPO_TARJETA
+                          when 4 then 'TARJETA_DEBITO'
                           else 'TARJETA_CONTADO'
                         end;
-  :P_POS_MONTO_PLANO := trim(replace(:P_AMOUNT, '.', ''));
+  :P_POS_MONTO_PLANO := trim(replace(:P_MONTO, '.', ''));
 exception
   when no_data_found then
-    raise_application_error(-20001, 'No POS terminal configured for this register.');
+    raise_application_error(-20001, 'No hay POS Bancard configurado para este puesto de cobro.');
 end;</code></pre>
 
-  <h3>Piece 3 &mdash; example result mapping</h3>
-  <pre><code>function formatThousands(n) {
+  <h3>Pieza 3 &mdash; mapeo del resultado (ejemplo)</h3>
+  <pre><code>function formatMiles(n) {
   n = Math.round(Number(n) || 0);
   return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
 }
-apex.item("MY_RECEIPT_NUMBER_ITEM").setValue(
-  formatThousands(apex.item("P_POS_NRO_BOLETA").getValue())
+apex.item("MI_ITEM_NRO_CHEQUE_TARJETA").setValue(
+  formatMiles(apex.item("P_POS_NRO_BOLETA").getValue())
 );
-apex.item("MY_AMOUNT_ITEM").setValue(
-  formatThousands(apex.item("P_POS_MONTO_COBRADO").getValue())
+apex.item("MI_ITEM_MONTO").setValue(
+  formatMiles(apex.item("P_POS_MONTO_COBRADO").getValue())
 );</code></pre>
 </div>
 
-<!-- 4. PAYMENT METHODS -->
+<!-- 4. MEDIOS DE PAGO -->
 <div class="page">
-  <h2 class="section-title"><span class="num">4</span>Payment methods and downstream mapping</h2>
+  <h2 class="section-title"><span class="num">4</span>Medios de pago y mapeo aguas abajo</h2>
 
-  <h3>Supported payment methods</h3>
+  <h3>Medios de pago soportados</h3>
   <table>
-    <tr><th>Code (Item: Medio de Pago)</th><th>Bancard endpoint(s)</th><th>Datos Adicionales (JSON)</th></tr>
+    <tr><th>Código (Item: Medio de Pago)</th><th>Endpoint(s) Bancard</th><th>Datos Adicionales (JSON)</th></tr>
     <tr><td><code>TARJETA_CONTADO</code></td><td><code>venta-ux</code> &rarr; <code>descuento</code></td><td>&mdash;</td></tr>
-    <tr><td><code>TARJETA_CUOTAS</code></td><td><code>venta-ux</code> (installments) &rarr; <code>descuento</code></td><td><code>{"cuotas":N,"plan":N}</code></td></tr>
+    <tr><td><code>TARJETA_CUOTAS</code></td><td><code>venta-ux</code> (con cuotas) &rarr; <code>descuento</code></td><td><code>{"cuotas":N,"plan":N}</code></td></tr>
     <tr><td><code>TARJETA_DEBITO</code></td><td><code>venta/debito</code> &rarr; <code>descuento</code></td><td>&mdash;</td></tr>
     <tr><td><code>TARJETA_CREDITO</code></td><td><code>venta/credito</code> &rarr; <code>descuento</code></td><td><code>{"cuotas":N,"plan":N}</code></td></tr>
-    <tr><td><code>QR</code></td><td><code>venta-qr</code></td><td><code>{"montoVuelto":N,"promotions":[...]}</code> (optional)</td></tr>
+    <tr><td><code>QR</code></td><td><code>venta-qr</code></td><td><code>{"montoVuelto":N,"promotions":[...]}</code> (opcional)</td></tr>
     <tr><td><code>QR_PIX</code></td><td><code>venta-qr-pix</code></td><td><code>{"pix_payer_cpf":"...","pix_payer_phone":"..."}</code></td></tr>
     <tr><td><code>EXTRACCION_QR</code></td><td><code>extraccion-qr</code></td><td>&mdash;</td></tr>
     <tr><td><code>CANJE</code></td><td><code>venta-canje</code></td><td>&mdash;</td></tr>
     <tr><td><code>CANJE_QR</code></td><td><code>venta-canje-qr</code></td><td>&mdash;</td></tr>
     <tr><td><code>BILLETERA</code></td><td><code>venta-billetera</code></td><td><code>{"billetera":"ZIM","cuenta":"123456"}</code></td></tr>
   </table>
-  <p class="muted"><code>anulacion</code> / <code>consulta-anulacion</code> are deliberately out of scope: post-sale management operations, not payment methods.</p>
+  <p class="muted"><code>anulacion</code>/<code>consulta-anulacion</code> quedan fuera del plugin a propósito: son operaciones de gestión post-venta, no medios de pago.</p>
 
-  <h3>Downstream mapping (each app's own responsibility)</h3>
-  <p>Each company keeps its own card-brand catalog (<code>issuerId &rarr; internal brand id</code>). The plugin doesn't know it; the mapping happens in the page, typically in the same "Change" event from piece 3:</p>
-  <pre><code>var myBrand = MY_BRAND_CATALOG[ apex.item('P_POS_ISSUER_ID').getValue() ] || 99;
-apex.item('MY_CARD_BRAND_ITEM').setValue(myBrand);
+  <h3>Mapeo aguas abajo (a cargo de cada app)</h3>
+  <p>Cada empresa mantiene su propio catálogo de marcas de tarjeta. El plugin no lo conoce; el mapeo se hace en la página, típicamente en el mismo evento "Change" de la pieza 3:</p>
+  <pre><code>var marcaPropia = MI_CATALOGO_MARCAS[ apex.item('P_POS_ISSUER_ID').getValue() ] || 99;
+apex.item('MI_ITEM_MARCA_TARJETA').setValue(marcaPropia);
 
-// Same applies to date formatting: convert P_POS_FECHA (ISO 8601)
-// to whatever format your save process expects.</code></pre>
+// Lo mismo aplica a formato de fecha: convertir P_POS_FECHA (ISO 8601)
+// al formato que tu proceso de guardado espere.</code></pre>
 
   <div class="callout">
-    This is intentionally each app's responsibility, not the plugin's &mdash; it's what lets the same, unmodified plugin be installed in any application, with its own brand catalog and its own save format.
+    Este mapeo es intencionalmente responsabilidad de cada app, no del plugin: es lo que permite instalar el mismo plugin, sin modificarlo, en cualquier aplicación con su propio catálogo de marcas y su propio formato de guardado.
   </div>
 </div>
 
-<!-- 5. SIMULATOR -->
+<!-- 5. SIMULADOR -->
 <div class="page">
-  <h2 class="section-title"><span class="num">5</span>Testing without a physical terminal</h2>
+  <h2 class="section-title"><span class="num">5</span>Probar sin terminal físico</h2>
 
-  <p><code>simulator/pos_simulator.py</code> implements all 13 real Bancard v1.5.0 endpoints, runs on the same machine or over the LAN, no external dependencies:</p>
+  <p><code>simulator/pos_simulator.py</code> implementa los 13 endpoints reales del protocolo Bancard v1.5.0, corre en la misma máquina o en la LAN, sin dependencias externas:</p>
 
   <pre><code>python pos_simulator.py --port 3000</code></pre>
 
-  <h3>Simulating realism: delay and random outcomes</h3>
+  <h3>Simular realismo: demora y resultados aleatorios</h3>
   <table>
-    <tr><th>Flag</th><th>What it does</th></tr>
-    <tr><td><code>--delay-cliente N</code> or <code>N-M</code></td><td>Simulates how long the customer takes to complete the transaction. Fixed value or random range (different every sale). Applies to everything except <code>/pos/eco</code>.</td></tr>
-    <tr><td><code>--random</code></td><td>Instead of always approving, randomly rejects sales (insufficient funds, expired/blocked card, etc.), times out, or fails <code>/pos/eco</code> itself.</td></tr>
-    <tr><td><code>--fail-rate</code></td><td>Rejection probability (0-1). Default 0.15.</td></tr>
-    <tr><td><code>--timeout-rate</code></td><td>Timeout probability (0-1). Default 0.03.</td></tr>
-    <tr><td><code>--eco-fail-rate</code></td><td>Probability the <code>/pos/eco</code> check fails. Default 0.05.</td></tr>
-    <tr><td><code>--interactive</code></td><td>Approve/reject/timeout each sale from the console instead, to reproduce a specific case.</td></tr>
+    <tr><th>Flag</th><th>Qué hace</th></tr>
+    <tr><td><code>--delay-cliente N</code> o <code>N-M</code></td><td>Demora simulando el tiempo que tarda el cliente en completar la operación. Número fijo o rango aleatorio. Se aplica a todo excepto <code>/pos/eco</code>.</td></tr>
+    <tr><td><code>--random</code></td><td>En vez de aprobar siempre, rechaza ventas al azar (fondos insuficientes, tarjeta vencida/bloqueada, etc.), hace timeout, o falla el propio <code>/pos/eco</code>.</td></tr>
+    <tr><td><code>--fail-rate</code></td><td>Probabilidad (0-1) de rechazo. Default 0.15.</td></tr>
+    <tr><td><code>--timeout-rate</code></td><td>Probabilidad (0-1) de timeout. Default 0.03.</td></tr>
+    <tr><td><code>--eco-fail-rate</code></td><td>Probabilidad (0-1) de que falle el <code>/pos/eco</code>. Default 0.05.</td></tr>
+    <tr><td><code>--interactive</code></td><td>Aprobar/rechazar/timeout cada venta por consola, para reproducir un caso puntual.</td></tr>
   </table>
 
   <pre><code>python pos_simulator.py --port 3000 --delay-cliente 5-10 --random</code></pre>
 
   <div class="callout warn">
-    <strong>Mind the gap between simulated delay and the plugin's timeout.</strong> The plugin's operation timeout is 90 seconds. If <code>--delay-cliente</code>'s max is close to or above that, the browser can report <code>Failed to fetch</code> instead of completing the test &mdash; keep the delay range comfortably below the timeout.
+    <strong>Ojo con el margen entre el delay simulado y el timeout del plugin.</strong> El timeout de operación del plugin es de 90 segundos. Si el máximo de <code>--delay-cliente</code> está cerca o por encima de eso, el navegador puede reportar <code>Failed to fetch</code> en vez de completar la prueba &mdash; dejar el rango bien por debajo del timeout.
   </div>
 
-  <p class="muted">Full endpoint/flag reference: <code>simulator/README.md</code>. To try the plugin alone, no APEX app needed: <code>js/demo.html</code>.</p>
+  <p class="muted">Referencia completa de endpoints y flags: <code>simulator/README.md</code>. Para probar el plugin solo, sin ninguna app APEX: <code>js/demo.html</code>.</p>
 </div>
 
 <!-- 6. TROUBLESHOOTING -->
@@ -418,31 +420,32 @@ apex.item('MY_CARD_BRAND_ITEM').setValue(myBrand);
   <h2 class="section-title"><span class="num">6</span>Troubleshooting</h2>
 
   <table>
-    <tr><th>Symptom</th><th>Likely cause</th></tr>
-    <tr><td><code>Failed to fetch</code> against a <strong>real</strong> terminal</td><td>Missing <code>chrome://flags</code> + "Allow CORS" extension setup on that machine.</td></tr>
-    <tr><td><code>Failed to fetch</code> against the <strong>simulator</strong></td><td><code>--delay-cliente</code> too close to the plugin's 90s timeout &mdash; lower the delay range.</td></tr>
-    <tr><td>"POS did not respond in time"</td><td>Terminal off, wrong IP/port, disconnected cable, or (against the simulator) <code>--random</code> rolled a timeout.</td></tr>
-    <tr><td>Configuration items arrive empty at the plugin's action</td><td>"Execute Server-side Code" (piece 1) written with <code>g_x01</code>/<code>sys.htp.p</code> instead of bind variables &mdash; see section 3. No error thrown, just sets nothing.</td></tr>
-    <tr><td>Plugin action chained after another async action never gets its attributes</td><td>Move the result mapping to a separate "Change" event (piece 3), not a chained action &mdash; see section 3.</td></tr>
-    <tr><td>Charge button doesn't show/hide live as the form changes</td><td>A server-side button condition only evaluates at page render &mdash; add your own show/hide Dynamic Action bound to the relevant items.</td></tr>
-    <tr><td>Page Designer breaks app-wide (can't open any Dynamic Action, any page)</td><td>A plugin installed with a manually-typed small ID via <code>wwv_flow_api</code> &mdash; see the danger box in section 2. Uninstall with <code>WWV_FLOW_API.REMOVE_PLUGIN</code> and reinstall through the UI.</td></tr>
+    <tr><th>Síntoma</th><th>Causa probable</th></tr>
+    <tr><td><code>Failed to fetch</code> contra un terminal <strong>real</strong></td><td>Falta configurar <code>chrome://flags</code> + extensión "Allow CORS" en esa máquina.</td></tr>
+    <tr><td><code>Failed to fetch</code> contra el <strong>simulador</strong></td><td><code>--delay-cliente</code> muy cerca del timeout del plugin (90s) &mdash; bajar el rango del delay.</td></tr>
+    <tr><td>"El POS no respondió dentro del tiempo de espera"</td><td>Terminal apagado, IP/puerto mal configurados, o (contra el simulador) salió el resultado aleatorio de timeout con <code>--random</code>.</td></tr>
+    <tr><td>Items de configuración llegan vacíos a la acción del plugin</td><td>"Execute Server-side Code" (pieza 1) escrita con <code>g_x01</code>/<code>sys.htp.p</code> en vez de bind variables &mdash; ver sección 3. No tira error, simplemente no setea nada.</td></tr>
+    <tr><td>La acción del plugin encadenada tras otra acción async nunca recibe atributos</td><td>Mover el mapeo del resultado a un evento "Change" separado (pieza 3), no una tercera acción encadenada.</td></tr>
+    <tr><td>El botón de cobro no aparece/desaparece en vivo</td><td>Una condición server-side (PL/SQL) se evalúa solo al renderizar &mdash; agregar tu propia Dynamic Action de mostrar/ocultar ligada al cambio de los items relevantes.</td></tr>
+    <tr><td>Rompió Page Designer para toda la app</td><td>Plugin instalado con un ID chico puesto a mano vía <code>wwv_flow_api</code> en vez de un export real o la UI &mdash; ver sección 2. Desinstalar con <code>WWV_FLOW_API.REMOVE_PLUGIN</code> y reinstalar con un export real o por la UI.</td></tr>
   </table>
 </div>
 
-<!-- 7. COMPATIBILITY -->
+<!-- 7. COMPATIBILIDAD -->
 <div class="page">
-  <h2 class="section-title"><span class="num">7</span>APEX version compatibility</h2>
+  <h2 class="section-title"><span class="num">7</span>Compatibilidad de versiones de APEX</h2>
 
-  <p>Built and tested on APEX 20.2. The API this plugin's <code>render</code> function uses is stable and documented from APEX 20.1 onward:</p>
+  <p>Desarrollado y probado en APEX 20.2, y <strong>verificado en la práctica</strong> contra una instancia 24.2 completamente distinta: el plugin se importó vía Export/Import sin tocar nada y funcionó de punta a punta.</p>
 
   <ul>
-    <li><strong>The <code>apex_plugin.t_dynamic_action</code> / <code>t_dynamic_action_render_result</code> API is stable and documented.</strong> Comparing the official definitions for 20.1 against 24.2, the 15 <code>attribute_01</code>..<code>attribute_15</code> fields this plugin uses didn't change; 24.2 only adds new fields at the end this plugin doesn't need.</li>
-    <li><strong>SweetAlert2 ships bundled</strong> as the plugin's own file, not loaded from an external CDN &mdash; a strict Content Security Policy <code>script-src</code> would block a <code>&lt;script&gt;</code> pointing at an external CDN domain not explicitly allow-listed.</li>
-    <li><strong>APEX 24.1 deprecated "Substitute Attribute Values"</strong> for region plugins; doesn't affect this plugin, which uses the simpler, stable Dynamic Action pattern (<code>p_render_function</code> only).</li>
+    <li><strong>La API que usa el <code>render</code> del plugin</strong> (<code>apex_plugin.t_dynamic_action</code>/<code>t_dynamic_action_render_result</code>) es estable y documentada: los 11 atributos que usa este plugin no cambiaron entre 20.1 y 24.2.</li>
+    <li><strong>Lo que sí cambió: el paquete interno que usa el propio export/import de Oracle.</strong> El export real de una instancia 20.2 usa <code>wwv_flow_api.*</code>; el de una instancia 24.2 usa <code>wwv_flow_imp.*</code>/<code>wwv_flow_imp_shared.*</code> &mdash; paquetes distintos, con al menos un parámetro que desapareció (<code>p_supported_ui_types</code>) y uno nuevo que apareció (<code>p_version_scn</code>). No afecta al plugin en uso, pero si algún día necesitás tocar el script de instalación a mano, no asumas que la firma es idéntica entre versiones.</li>
+    <li><strong>SweetAlert2 va empaquetado como archivo propio del plugin</strong>, no cargado desde un CDN externo &mdash; pensado para instancias con Content Security Policy reforzada (documentado por Oracle para APEX 24.2).</li>
+    <li><strong>APEX 24.1 deprecó "Substitute Attribute Values"</strong> para plugins de región; no afecta a este plugin, que usa el patrón más simple de Dynamic Action (solo <code>p_render_function</code>).</li>
   </ul>
 
   <div class="callout">
-    Installing through the UI (section 2, recommended path), version compatibility is handled by APEX itself &mdash; doesn't depend on any hand-typed <code>p_release</code>. The <code>install/*.sql</code> scripts remain in the repo mainly as a readable reference for the plugin's source code.
+    Instalando con los exports reales o por la UI (sección 2), la compatibilidad de versión la resuelve APEX solo.
   </div>
 </div>
 
