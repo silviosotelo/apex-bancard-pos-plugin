@@ -2,227 +2,1226 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<title>Demo — plugin BANCARD.POS_CLIENTE</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Demo — Oracle APEX Bancard POS Plugin</title>
 <script src="vendor/sweetalert2.min.js"></script>
 <script src="pos_bancard_cliente.js"></script>
 <style>
   :root {
-    --bancard-blue: #0D4D8C;
-    --bancard-blue-dark: #073561;
-    --purple: #4B2A82;
-    --purple-dark: #38215F;
-    --teal: #2FBFAE;
-    --ok: #2E9E5B;
-    --err: #D14343;
-    --bg: #F4F2F8;
-    --text: #2A2438;
-    --muted: #6B6478;
+    --bancard-900: #003b70;
+    --bancard-800: #004f92;
+    --bancard-700: #0068b4;
+    --bancard-600: #007bc4;
+    --bancard-500: #1196d4;
+    --bancard-100: #dff4ff;
+    --ink-950: #071426;
+    --ink-900: #0b1f38;
+    --ink-800: #173451;
+    --ink-700: #36536d;
+    --ink-500: #758ca0;
+    --surface: #ffffff;
+    --surface-soft: #f5f9fc;
+    --line: #dce8f1;
+    --success: #15a86b;
+    --danger: #d9414f;
+    --warning: #f5a623;
+    --shadow: 0 24px 70px rgba(4, 31, 58, .16);
   }
+
   * { box-sizing: border-box; }
-  body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--bg); margin: 0; padding: 32px; color: var(--text); }
-  h1 { color: var(--purple); font-size: 18px; margin: 0 0 4px; }
-  p.subtitle { color: var(--muted); font-size: 12.5px; margin: 0 0 24px; }
 
-  .layout { display: flex; gap: 28px; align-items: flex-start; flex-wrap: wrap; max-width: 980px; margin: 0 auto; }
+  html { min-height: 100%; background: #eaf4fb; }
 
-  /* ---- Panel izquierdo: configuracion ---- */
+  body {
+    min-height: 100vh;
+    margin: 0;
+    color: var(--ink-900);
+    font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+    background:
+      radial-gradient(circle at 87% 10%, rgba(78, 205, 255, .34), transparent 25rem),
+      radial-gradient(circle at 0 80%, rgba(0, 92, 164, .14), transparent 30rem),
+      linear-gradient(135deg, #f8fcff 0%, #edf7fd 43%, #dceef9 100%);
+    overflow-x: hidden;
+  }
+
+  button, input, select { font: inherit; }
+
+  .page-shell {
+    width: min(1240px, calc(100% - 40px));
+    margin: 0 auto;
+    padding: 28px 0 44px;
+  }
+
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 28px;
+  }
+
+  .brand-lockup { display: flex; align-items: center; gap: 13px; }
+
+  .brand-symbol {
+    width: 45px;
+    height: 45px;
+    border-radius: 14px;
+    display: grid;
+    place-items: center;
+    color: #fff;
+    background: linear-gradient(145deg, var(--bancard-700), var(--bancard-900));
+    box-shadow: 0 10px 24px rgba(0, 89, 157, .26);
+  }
+
+  .brand-symbol svg { width: 24px; height: 24px; }
+  .brand-copy strong { display: block; font-size: 14px; letter-spacing: -.01em; }
+  .brand-copy span { display: block; margin-top: 2px; color: var(--ink-500); font-size: 11px; }
+
+  .repo-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 12px;
+    border: 1px solid rgba(0, 79, 146, .14);
+    border-radius: 999px;
+    background: rgba(255,255,255,.72);
+    color: var(--ink-700);
+    font-size: 11px;
+    font-weight: 650;
+    box-shadow: 0 8px 20px rgba(20, 74, 113, .07);
+    backdrop-filter: blur(10px);
+  }
+
+  .repo-pill::before {
+    content: "";
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--success);
+    box-shadow: 0 0 0 4px rgba(21, 168, 107, .13);
+  }
+
+  .hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 485px;
+    gap: 34px;
+    align-items: center;
+  }
+
+  .intro { padding: 8px 0 4px; }
+
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 15px;
+    color: var(--bancard-800);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+  }
+
+  .eyebrow span {
+    width: 24px;
+    height: 2px;
+    border-radius: 2px;
+    background: var(--bancard-600);
+  }
+
+  h1 {
+    max-width: 650px;
+    margin: 0;
+    color: var(--ink-950);
+    font-size: clamp(38px, 5vw, 68px);
+    line-height: .98;
+    letter-spacing: -.055em;
+  }
+
+  h1 em {
+    display: block;
+    color: var(--bancard-700);
+    font-style: normal;
+  }
+
+  .lead {
+    max-width: 650px;
+    margin: 20px 0 24px;
+    color: var(--ink-700);
+    font-size: 15px;
+    line-height: 1.65;
+  }
+
+  .feature-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 9px;
+    margin-bottom: 25px;
+  }
+
+  .feature-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 10px;
+    border-radius: 999px;
+    color: var(--ink-700);
+    background: rgba(255,255,255,.72);
+    border: 1px solid rgba(0, 104, 180, .11);
+    font-size: 10.5px;
+    font-weight: 700;
+  }
+
+  .feature-chip svg { width: 14px; height: 14px; color: var(--bancard-700); }
+
   .config-card {
-    flex: 1 1 420px; max-width: 460px;
-    background: #fff; border-radius: 10px; padding: 24px 26px;
-    box-shadow: 0 4px 20px rgba(75,42,130,0.10);
+    max-width: 690px;
+    overflow: hidden;
+    border: 1px solid rgba(0, 79, 146, .12);
+    border-radius: 22px;
+    background: rgba(255,255,255,.9);
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(16px);
   }
-  .config-card h2 { font-size: 14px; color: var(--purple-dark); margin: 0 0 16px; display:flex; align-items:center; gap:8px; }
-  .config-card h2 .badge { background: var(--teal); color:#fff; font-size:10px; padding:2px 8px; border-radius:10px; font-weight:600; }
-  .field { margin-bottom: 14px; }
-  .field label { display: block; font-size: 11.5px; font-weight: 600; color: var(--purple-dark); margin-bottom: 4px; }
-  .field input, .field select {
-    width: 100%; padding: 8px 10px; border: 1px solid #DCD5EE; border-radius: 6px;
-    font-size: 13px; font-family: inherit; color: var(--text); background: #fff;
+
+  .config-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    padding: 18px 20px;
+    border-bottom: 1px solid var(--line);
+    background: linear-gradient(180deg, #fff, #f8fbfd);
   }
-  .field input:focus, .field select:focus { outline: none; border-color: var(--teal); box-shadow: 0 0 0 3px rgba(47,191,174,0.15); }
-  .field-row { display: flex; gap: 10px; }
-  .field-row .field { flex: 1; }
-  .field small { display:block; color: var(--muted); font-size: 10.5px; margin-top: 3px; }
-  .conditional { border-left: 3px solid var(--teal); padding-left: 12px; margin: 12px 0; background: #FAFAFE; border-radius: 0 6px 6px 0; padding-top: 8px; padding-bottom: 2px; }
+
+  .config-title { display: flex; align-items: center; gap: 11px; }
+
+  .config-icon {
+    width: 34px;
+    height: 34px;
+    display: grid;
+    place-items: center;
+    border-radius: 10px;
+    color: var(--bancard-700);
+    background: var(--bancard-100);
+  }
+
+  .config-icon svg { width: 18px; height: 18px; }
+  .config-title strong { display: block; font-size: 12px; }
+  .config-title span { display: block; margin-top: 2px; color: var(--ink-500); font-size: 9.5px; }
+
+  .apex-badge {
+    padding: 6px 9px;
+    border-radius: 8px;
+    color: #fff;
+    background: var(--ink-900);
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: .04em;
+  }
+
+  .config-body { padding: 19px 20px 17px; }
+  .field-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .field-grid .span-2 { grid-column: 1 / -1; }
+  .field { min-width: 0; }
+
+  .field label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin: 0 0 6px;
+    color: var(--ink-800);
+    font-size: 9.5px;
+    font-weight: 800;
+    letter-spacing: .025em;
+    text-transform: uppercase;
+  }
+
+  .field label small {
+    color: var(--ink-500);
+    font-size: 8.5px;
+    font-weight: 650;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+
+  .control-wrap { position: relative; }
+
+  .field input,
+  .field select {
+    width: 100%;
+    height: 42px;
+    padding: 0 12px;
+    border: 1px solid #cadbe7;
+    border-radius: 11px;
+    outline: none;
+    color: var(--ink-900);
+    background: #fff;
+    font-size: 12px;
+    font-weight: 650;
+    transition: border-color .16s ease, box-shadow .16s ease, transform .16s ease;
+  }
+
+  .field select { appearance: none; padding-right: 36px; cursor: pointer; }
+
+  .select-arrow {
+    pointer-events: none;
+    position: absolute;
+    top: 50%;
+    right: 13px;
+    width: 7px;
+    height: 7px;
+    border-right: 2px solid var(--ink-500);
+    border-bottom: 2px solid var(--ink-500);
+    transform: translateY(-70%) rotate(45deg);
+  }
+
+  .field input:focus,
+  .field select:focus {
+    border-color: var(--bancard-600);
+    box-shadow: 0 0 0 4px rgba(0, 123, 196, .12);
+  }
+
+  .conditional {
+    grid-column: 1 / -1;
+    display: none;
+    padding: 12px;
+    border: 1px dashed #bcd4e5;
+    border-radius: 12px;
+    background: #f7fbfe;
+  }
+
+  .conditional .field-grid { gap: 10px; }
+
+  .amount-wrap { position: relative; }
+  .amount-wrap::before {
+    content: "Gs.";
+    position: absolute;
+    top: 50%;
+    left: 13px;
+    color: var(--bancard-800);
+    font-size: 11px;
+    font-weight: 800;
+    transform: translateY(-50%);
+  }
+  .amount-wrap input { padding-left: 39px; font-size: 15px; }
 
   #btnCobrar {
-    width: 100%; background: var(--teal); color: #fff; border: none; padding: 12px 22px;
-    border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; margin-top: 6px;
-    transition: background .15s;
+    width: 100%;
+    height: 48px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 15px;
+    border: 0;
+    border-radius: 13px;
+    color: #fff;
+    background: linear-gradient(135deg, var(--bancard-700), var(--bancard-900));
+    box-shadow: 0 12px 26px rgba(0, 79, 146, .27);
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: .02em;
+    transition: transform .16s ease, box-shadow .16s ease, opacity .16s ease;
   }
-  #btnCobrar:hover { background: #26A594; }
-  #btnCobrar:disabled { background: #C9C4D6; cursor: not-allowed; }
 
-  .resultado { margin-top: 18px; border-top: 1px solid #EEE; padding-top: 14px; }
-  .resultado h3 { font-size: 11.5px; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); margin: 0 0 8px; }
-  .row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #F3F1F8; font-size: 12px; }
-  .row b { color: var(--purple-dark); font-weight: 600; }
-  .row span { color: var(--text); font-family: Consolas, monospace; text-align: right; }
+  #btnCobrar svg { width: 17px; height: 17px; }
+  #btnCobrar:hover { transform: translateY(-1px); box-shadow: 0 15px 30px rgba(0, 79, 146, .32); }
+  #btnCobrar:active { transform: translateY(0); }
+  #btnCobrar:disabled { cursor: wait; opacity: .58; transform: none; }
 
-  /* ---- Panel derecho: terminal POS ---- */
-  .pos-wrap { flex: 0 0 300px; display: flex; flex-direction: column; align-items: center; }
-  .pos-wrap h2 { font-size: 14px; color: var(--purple-dark); margin: 0 0 16px; }
-  .pos-shell {
-    width: 260px; height: 480px; background: #14171C; border-radius: 32px;
-    padding: 14px 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.25);
-    display: flex; flex-direction: column; position: relative;
+  .result-panel {
+    padding: 0 20px 19px;
   }
-  .pos-shell::before {
-    content: ""; position: absolute; top: 6px; left: 50%; transform: translateX(-50%);
-    width: 50px; height: 5px; background: #333; border-radius: 3px;
+
+  .result-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 0 9px;
+    border-top: 1px solid var(--line);
   }
+
+  .result-head strong {
+    color: var(--ink-700);
+    font-size: 9px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+
+  .result-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--ink-500);
+    font-size: 9px;
+    font-weight: 700;
+  }
+
+  .result-status i {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #a7b9c6;
+  }
+
+  .result-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+
+  .result-item {
+    min-width: 0;
+    padding: 10px;
+    border: 1px solid #e5edf3;
+    border-radius: 10px;
+    background: #fbfdff;
+  }
+
+  .result-item b {
+    display: block;
+    margin-bottom: 4px;
+    overflow: hidden;
+    color: var(--ink-500);
+    font-size: 8.5px;
+    font-weight: 750;
+    text-overflow: ellipsis;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .result-item span {
+    display: block;
+    overflow: hidden;
+    color: var(--ink-900);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 10px;
+    font-weight: 650;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .terminal-stage {
+    position: relative;
+    min-height: 780px;
+    display: grid;
+    place-items: center;
+    isolation: isolate;
+  }
+
+  .terminal-stage::before {
+    content: "";
+    position: absolute;
+    z-index: -2;
+    width: 500px;
+    height: 500px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(0, 123, 196, .24), rgba(0, 123, 196, .05) 48%, transparent 70%);
+  }
+
+  .terminal-stage::after {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    bottom: 42px;
+    width: 330px;
+    height: 58px;
+    border-radius: 50%;
+    background: rgba(0, 30, 56, .22);
+    filter: blur(22px);
+  }
+
+  .terminal-caption {
+    position: absolute;
+    top: 2px;
+    left: 50%;
+    width: max-content;
+    transform: translateX(-50%);
+    text-align: center;
+  }
+
+  .terminal-caption strong { display: block; color: var(--ink-900); font-size: 13px; }
+  .terminal-caption span { display: block; margin-top: 3px; color: var(--ink-500); font-size: 10px; }
+
+  .connection-pill {
+    position: absolute;
+    top: 55px;
+    right: 12px;
+    z-index: 6;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 10px;
+    border: 1px solid rgba(0, 79, 146, .12);
+    border-radius: 999px;
+    background: rgba(255,255,255,.88);
+    color: var(--ink-700);
+    box-shadow: 0 10px 28px rgba(4, 31, 58, .12);
+    font-size: 9.5px;
+    font-weight: 750;
+    backdrop-filter: blur(12px);
+  }
+
+  .connection-pill i {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #9eb3c2;
+    box-shadow: 0 0 0 4px rgba(158, 179, 194, .16);
+  }
+
+  .connection-pill.online i { background: var(--success); box-shadow: 0 0 0 4px rgba(21, 168, 107, .14); }
+  .connection-pill.busy i { background: var(--warning); box-shadow: 0 0 0 4px rgba(245, 166, 35, .14); animation: pulseDot 1s infinite; }
+  .connection-pill.error i { background: var(--danger); box-shadow: 0 0 0 4px rgba(217, 65, 79, .14); }
+
+  @keyframes pulseDot { 50% { opacity: .45; transform: scale(.85); } }
+
+  .pos-device {
+    position: relative;
+    width: 342px;
+    height: 670px;
+    margin-top: 50px;
+    transform: perspective(1200px) rotateY(-4deg) rotateX(1.5deg);
+    transform-style: preserve-3d;
+  }
+
+  .pos-printer {
+    position: absolute;
+    z-index: 3;
+    top: 0;
+    left: 29px;
+    width: 284px;
+    height: 158px;
+    border-radius: 45px 45px 26px 26px;
+    background: linear-gradient(150deg, #232a31 0%, #080c10 82%);
+    box-shadow: inset 0 2px 1px rgba(255,255,255,.1), 0 17px 30px rgba(4, 24, 44, .26);
+  }
+
+  .pos-printer::before {
+    content: "";
+    position: absolute;
+    top: 14px;
+    left: 28px;
+    right: 28px;
+    height: 64px;
+    border-radius: 23px;
+    background: linear-gradient(180deg, #171d22, #0b0f13);
+    box-shadow: inset 0 -1px 0 rgba(255,255,255,.04);
+  }
+
+  .paper-slot {
+    position: absolute;
+    z-index: 1;
+    top: 93px;
+    left: 38px;
+    width: 208px;
+    height: 10px;
+    border-radius: 999px;
+    background: #010203;
+    box-shadow: 0 1px 0 rgba(255,255,255,.08);
+  }
+
+  .nfc-mark {
+    position: absolute;
+    z-index: 2;
+    top: 28px;
+    left: 50%;
+    width: 58px;
+    height: 44px;
+    transform: translateX(-50%);
+    color: #fff;
+    opacity: .88;
+  }
+
+  .nfc-mark svg { width: 100%; height: 100%; }
+
+  .printer-logo {
+    position: absolute;
+    z-index: 2;
+    top: 115px;
+    left: 50%;
+    color: rgba(255,255,255,.85);
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: .08em;
+    transform: translateX(-50%);
+  }
+
+  .pos-body-shell {
+    position: absolute;
+    z-index: 4;
+    top: 110px;
+    left: 0;
+    width: 342px;
+    height: 555px;
+    padding: 15px 17px 20px;
+    border-radius: 36px 36px 42px 42px;
+    background:
+      linear-gradient(100deg, rgba(255,255,255,.17), transparent 11%),
+      linear-gradient(150deg, #1a78d0 0%, #0756a8 42%, #003f7f 100%);
+    box-shadow:
+      inset -8px 0 12px rgba(0, 31, 73, .28),
+      inset 5px 0 8px rgba(255,255,255,.09),
+      0 32px 60px rgba(0, 45, 85, .32);
+  }
+
+  .pos-body-shell::before,
+  .pos-body-shell::after {
+    content: "";
+    position: absolute;
+    top: 144px;
+    width: 5px;
+    height: 92px;
+    border-radius: 999px;
+    background: rgba(0, 34, 75, .35);
+  }
+
+  .pos-body-shell::before { left: -4px; }
+  .pos-body-shell::after { right: -4px; }
+
+  .device-camera {
+    position: absolute;
+    z-index: 6;
+    top: 9px;
+    left: 50%;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #4e6c83, #071019 55%, #000);
+    border: 2px solid #172d41;
+    transform: translateX(-50%);
+  }
+
+  .device-sensor {
+    position: absolute;
+    z-index: 6;
+    top: 12px;
+    left: calc(50% + 20px);
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #203d55;
+  }
+
+  .screen-bezel {
+    position: relative;
+    height: 470px;
+    overflow: hidden;
+    border: 8px solid #09131e;
+    border-radius: 25px;
+    background: #09131e;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.05), 0 2px 6px rgba(0,0,0,.22);
+  }
+
   .pos-screen {
-    flex: 1; background: #fff; border-radius: 18px; overflow: hidden;
-    display: flex; flex-direction: column; margin-top: 8px;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    border-radius: 16px;
+    background: #fff;
   }
+
+  .pos-statusbar {
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 10px;
+    color: #637b8e;
+    background: #f7fafc;
+    font-size: 7px;
+    font-weight: 750;
+  }
+
+  .status-icons { display: flex; align-items: center; gap: 4px; }
+  .status-icons span { display: block; border-radius: 1px; background: #637b8e; }
+  .status-icons .signal { width: 9px; height: 6px; clip-path: polygon(0 100%, 18% 68%, 18% 100%, 40% 44%, 40% 100%, 63% 20%, 63% 100%, 100% 0, 100% 100%); }
+  .status-icons .battery { width: 10px; height: 5px; border: 1px solid #637b8e; background: transparent; }
+
   .pos-header {
-    background: var(--bancard-blue); color: #fff; padding: 8px 12px;
-    display: flex; align-items: center; justify-content: space-between; font-weight: 700; font-size: 15px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 13px;
+    color: #fff;
+    background: linear-gradient(90deg, var(--bancard-800), var(--bancard-700));
   }
-  .pos-header .menu { font-size: 14px; opacity: .85; }
-  .pos-subheader { background: var(--bancard-blue); color: #BFD9F2; font-size: 8px; padding: 0 12px 6px; display:flex; justify-content:space-between; }
-  .pos-body { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 14px; text-align: center; gap: 10px; }
+
+  .pos-menu {
+    width: 17px;
+    height: 14px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  .pos-menu i { height: 2px; border-radius: 2px; background: #fff; }
+
+  .bancard-wordmark {
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: -.07em;
+  }
+
+  .pos-header-chevron {
+    width: 8px;
+    height: 8px;
+    border-right: 2px solid #fff;
+    border-bottom: 2px solid #fff;
+    transform: rotate(45deg) translateY(-2px);
+  }
+
+  .pos-meta {
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 11px;
+    color: #4c718d;
+    background: #f7fbfe;
+    border-bottom: 1px solid #e1edf4;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 6.5px;
+    font-weight: 700;
+  }
+
+  .pos-body {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 15px 14px 13px;
+    text-align: center;
+    background: linear-gradient(180deg, #fff 0%, #f9fcfe 100%);
+  }
+
   .pos-amount {
-    background: #E9F1FA; color: var(--bancard-blue-dark); font-size: 12px; font-weight: 700;
-    padding: 5px 12px; border-radius: 14px; margin-bottom: 4px;
+    width: 100%;
+    padding: 7px 10px;
+    border-radius: 999px;
+    color: var(--bancard-800);
+    background: #e7f2fb;
+    font-size: 10.5px;
+    font-weight: 850;
   }
-  .pos-icon { font-size: 46px; line-height: 1; }
+
+  .pos-methods {
+    display: flex;
+    justify-content: center;
+    gap: 4px;
+    width: 100%;
+  }
+
+  .method-chip {
+    min-width: 27px;
+    padding: 4px 5px;
+    border: 1px solid #d9e7f0;
+    border-radius: 4px;
+    color: #51718a;
+    background: #fff;
+    font-size: 5.5px;
+    font-weight: 850;
+  }
+
+  .pos-visual {
+    position: relative;
+    width: 94px;
+    height: 80px;
+    display: grid;
+    place-items: center;
+  }
+
+  .card-art {
+    position: absolute;
+    width: 54px;
+    height: 35px;
+    border-radius: 6px;
+    background: linear-gradient(135deg, #168fda, #074b9b);
+    box-shadow: 0 7px 14px rgba(0, 79, 146, .18);
+  }
+
+  .card-art::before {
+    content: "";
+    position: absolute;
+    top: 9px;
+    left: 7px;
+    width: 12px;
+    height: 9px;
+    border-radius: 2px;
+    background: #f9c74f;
+  }
+
+  .card-art::after {
+    content: "";
+    position: absolute;
+    right: 6px;
+    bottom: 6px;
+    width: 14px;
+    height: 8px;
+    border-top: 2px solid rgba(255,255,255,.72);
+    border-bottom: 2px solid rgba(255,255,255,.45);
+  }
+
+  .card-art.a { transform: translate(-18px, -9px) rotate(-17deg); }
+  .card-art.b { transform: translate(19px, 1px) rotate(11deg); }
+
+  .contactless-rings {
+    position: absolute;
+    z-index: 2;
+    width: 28px;
+    height: 28px;
+    border: 3px solid var(--bancard-600);
+    border-left-color: transparent;
+    border-bottom-color: transparent;
+    border-radius: 50%;
+    transform: rotate(45deg);
+    animation: nfcPulse 1.6s ease-in-out infinite;
+  }
+
+  .contactless-rings::before,
+  .contactless-rings::after {
+    content: "";
+    position: absolute;
+    border: 2px solid var(--bancard-600);
+    border-left-color: transparent;
+    border-bottom-color: transparent;
+    border-radius: 50%;
+  }
+  .contactless-rings::before { inset: 5px; }
+  .contactless-rings::after { inset: 10px; }
+
+  @keyframes nfcPulse { 50% { transform: rotate(45deg) scale(1.08); opacity: .7; } }
+
+  .pos-icon {
+    min-height: 60px;
+    display: grid;
+    place-items: center;
+    color: var(--bancard-700);
+    font-size: 48px;
+    line-height: 1;
+  }
+
   .pos-icon.spin { animation: posspin 1s linear infinite; }
-  @keyframes posspin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-  .pos-instruction { font-size: 13px; font-weight: 600; color: #333; }
-  .pos-sub { font-size: 10.5px; color: var(--muted); }
-  .pos-status-ok { color: var(--ok); }
-  .pos-status-err { color: var(--err); }
-  .pos-details { font-size: 10px; color: var(--muted); font-family: Consolas, monospace; margin-top: 4px; line-height: 1.6; }
-  .pos-keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; width: 100%; margin-top: 8px; }
-  .pos-key { background: var(--bancard-blue); color: #fff; border-radius: 6px; padding: 8px 0; font-size: 12px; font-weight: 600; }
-  .pos-key.alt { background: #EEE; color: #999; }
-  .pos-footer-hint { font-size: 9.5px; color: #B9B3CC; margin-top: 12px; text-align: center; max-width: 260px; }
+  @keyframes posspin { to { transform: rotate(360deg); } }
+
+  .spinner-ring {
+    width: 45px;
+    height: 45px;
+    border: 5px solid #d9e9f4;
+    border-top-color: var(--bancard-700);
+    border-radius: 50%;
+  }
+
+  .pos-instruction {
+    color: var(--ink-900);
+    font-size: 11.5px;
+    font-weight: 850;
+  }
+
+  .pos-sub {
+    max-width: 210px;
+    color: #71889a;
+    font-size: 8.5px;
+    line-height: 1.45;
+  }
+
+  .pos-status-ok { color: var(--success); }
+  .pos-status-err { color: var(--danger); }
+
+  .pos-details {
+    max-width: 215px;
+    color: #637b8e;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 8px;
+    line-height: 1.55;
+  }
+
+  .approval-mark,
+  .error-mark {
+    width: 60px;
+    height: 60px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    font-size: 30px;
+    font-weight: 500;
+  }
+  .approval-mark { color: var(--success); background: rgba(21,168,107,.11); box-shadow: 0 0 0 9px rgba(21,168,107,.05); }
+  .error-mark { color: var(--danger); background: rgba(217,65,79,.1); box-shadow: 0 0 0 9px rgba(217,65,79,.05); }
+
+  .pos-keypad {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 3px;
+    width: 100%;
+    margin-top: 3px;
+  }
+
+  .pos-key {
+    min-height: 27px;
+    display: grid;
+    place-items: center;
+    border-radius: 2px;
+    color: #fff;
+    background: linear-gradient(180deg, #0a7cc3, #0068ad);
+    border: 1px solid rgba(255,255,255,.18);
+    font-size: 9px;
+    font-weight: 750;
+  }
+
+  .pos-key.alt { color: #e4f4ff; background: #04588f; }
+  .pos-key.cancel { background: #cc3342; }
+  .pos-key.confirm { background: #20a55f; }
+
+  .android-nav {
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    color: #fff;
+    background: #03070a;
+  }
+
+  .nav-triangle {
+    width: 0;
+    height: 0;
+    border-top: 5px solid transparent;
+    border-bottom: 5px solid transparent;
+    border-right: 9px solid #fff;
+  }
+  .nav-circle { width: 11px; height: 11px; border: 1.7px solid #fff; border-radius: 50%; }
+  .nav-square { width: 10px; height: 10px; border: 1.7px solid #fff; border-radius: 1px; }
+
+  .device-footer {
+    height: 55px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255,255,255,.9);
+    font-size: 10px;
+    font-weight: 850;
+    letter-spacing: .05em;
+  }
+
+  .side-ridges {
+    position: absolute;
+    z-index: 1;
+    top: 196px;
+    right: -7px;
+    width: 19px;
+    height: 270px;
+    border-radius: 0 10px 10px 0;
+    background: repeating-linear-gradient(90deg, #00376f 0 2px, #00509b 2px 4px);
+    box-shadow: inset -3px 0 4px rgba(0,0,0,.22);
+  }
+
+  .event-card {
+    position: absolute;
+    z-index: 8;
+    left: -31px;
+    bottom: 86px;
+    width: 175px;
+    padding: 12px;
+    border: 1px solid rgba(0, 79, 146, .13);
+    border-radius: 14px;
+    background: rgba(255,255,255,.92);
+    box-shadow: 0 16px 35px rgba(3, 43, 77, .15);
+    backdrop-filter: blur(12px);
+  }
+
+  .event-card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 9px; }
+  .event-card-head strong { color: var(--ink-800); font-size: 9.5px; }
+  .event-card-head span { color: var(--success); font-size: 8px; font-weight: 800; }
+
+  .event-line {
+    position: relative;
+    display: flex;
+    gap: 8px;
+    padding-bottom: 8px;
+    color: var(--ink-500);
+    font-size: 7.5px;
+    line-height: 1.35;
+  }
+  .event-line:last-child { padding-bottom: 0; }
+  .event-dot {
+    flex: 0 0 auto;
+    width: 7px;
+    height: 7px;
+    margin-top: 1px;
+    border-radius: 50%;
+    background: #b5c6d2;
+  }
+  .event-line.active { color: var(--ink-800); font-weight: 750; }
+  .event-line.active .event-dot { background: var(--bancard-600); box-shadow: 0 0 0 3px rgba(0,123,196,.12); }
+  .event-line.done .event-dot { background: var(--success); }
+
+  .terminal-note {
+    position: absolute;
+    bottom: 10px;
+    left: 50%;
+    width: 400px;
+    max-width: 90%;
+    color: var(--ink-500);
+    font-size: 9.5px;
+    line-height: 1.5;
+    text-align: center;
+    transform: translateX(-50%);
+  }
+
+  code {
+    padding: 2px 5px;
+    border-radius: 5px;
+    color: var(--bancard-800);
+    background: rgba(0, 104, 180, .08);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: .92em;
+  }
+
+  @media (max-width: 1050px) {
+    .hero { grid-template-columns: 1fr; }
+    .intro { max-width: 760px; margin: 0 auto; }
+    .terminal-stage { min-height: 750px; }
+  }
+
+  @media (max-width: 680px) {
+    .page-shell { width: min(100% - 24px, 1240px); padding-top: 16px; }
+    .topbar { align-items: flex-start; }
+    .repo-pill { display: none; }
+    h1 { font-size: clamp(36px, 13vw, 53px); }
+    .lead { font-size: 13.5px; }
+    .field-grid, .result-grid { grid-template-columns: 1fr; }
+    .field-grid .span-2 { grid-column: auto; }
+    .conditional { grid-column: auto; }
+    .conditional .field-grid { grid-template-columns: 1fr; }
+    .terminal-stage { min-height: 710px; transform: scale(.9); transform-origin: top center; margin-bottom: -70px; }
+    .connection-pill { right: 0; }
+    .event-card { left: -6px; bottom: 105px; }
+  }
 </style>
 </head>
 <body>
-
-<h1>Demo &mdash; plugin BANCARD.POS_CLIENTE</h1>
-<p class="subtitle">Harness standalone: llama al plugin exactamente como lo haría una Dynamic Action real de APEX, contra el simulador local (<code>simulator/pos_simulator.py</code>).</p>
-
-<div class="layout">
-
-  <!-- ============ PANEL IZQUIERDO: CONFIGURACION ============ -->
-  <div class="config-card">
-    <h2>Configuración de la venta <span class="badge">simula la página APEX</span></h2>
-
-    <div class="field-row">
-      <div class="field">
-        <label for="cfgIp">IP del POS</label>
-        <input type="text" id="cfgIp" value="127.0.0.1">
+<div class="page-shell">
+  <header class="topbar">
+    <div class="brand-lockup">
+      <div class="brand-symbol" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M7 4.5h10A2.5 2.5 0 0 1 19.5 7v10A2.5 2.5 0 0 1 17 19.5H7A2.5 2.5 0 0 1 4.5 17V7A2.5 2.5 0 0 1 7 4.5Z" stroke="currentColor" stroke-width="1.7"/><path d="M8 15.5 11 12l2.3 2.2L16.5 9" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </div>
-      <div class="field">
-        <label for="cfgPuerto">Puerto</label>
-        <input type="text" id="cfgPuerto" value="3000">
+      <div class="brand-copy">
+        <strong>APEX Bancard POS Plugin</strong>
+        <span>Dynamic Action · Integración directa con terminal físico</span>
       </div>
     </div>
+    <div class="repo-pill">Open source · GitHub</div>
+  </header>
 
-    <div class="field">
-      <label for="cfgMedio">Medio de Pago</label>
-      <select id="cfgMedio" onchange="onMedioChange()">
-        <option value="TARJETA_CONTADO" selected>TARJETA_CONTADO</option>
-        <option value="TARJETA_CUOTAS">TARJETA_CUOTAS</option>
-        <option value="TARJETA_DEBITO">TARJETA_DEBITO</option>
-        <option value="TARJETA_CREDITO">TARJETA_CREDITO</option>
-        <option value="QR">QR</option>
-        <option value="QR_PIX">QR_PIX</option>
-        <option value="EXTRACCION_QR">EXTRACCION_QR</option>
-        <option value="CANJE">CANJE</option>
-        <option value="CANJE_QR">CANJE_QR</option>
-        <option value="BILLETERA">BILLETERA</option>
-      </select>
-    </div>
+  <main class="hero">
+    <section class="intro">
+      <div class="eyebrow"><span></span> Oracle APEX + Bancard</div>
+      <h1>Cobros desde APEX, <em>directo al POS.</em></h1>
+      <p class="lead">Este demo ejecuta el mismo runtime JavaScript del plugin y refleja, en tiempo real, cada etapa de comunicación con el simulador local: conexión, espera del cliente, procesamiento y resultado final.</p>
 
-    <div class="field">
-      <label for="cfgMonto">Monto (Gs.)</label>
-      <input type="text" id="cfgMonto" value="150.000" oninput="formatearMonto(this)">
-    </div>
+      <div class="feature-row">
+        <span class="feature-chip">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M7 12.5 10.3 16 17 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Sin backend intermedio
+        </span>
+        <span class="feature-chip">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M12 3v18M4.5 7.5h15M4.5 16.5h15" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+          REST local desde el navegador
+        </span>
+        <span class="feature-chip">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M7 4.5h10A2.5 2.5 0 0 1 19.5 7v10A2.5 2.5 0 0 1 17 19.5H7A2.5 2.5 0 0 1 4.5 17V7A2.5 2.5 0 0 1 7 4.5Z" stroke="currentColor" stroke-width="1.7"/><path d="M8 9h8M8 12h5M8 15h7" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+          Resultado crudo y reutilizable
+        </span>
+      </div>
 
-    <!-- Cuotas/Plan: TARJETA_CUOTAS / TARJETA_CREDITO -->
-    <div class="conditional" id="condCuotas" style="display:none">
-      <div class="field-row">
-        <div class="field">
-          <label for="cfgCuotas">Cuotas</label>
-          <input type="text" id="cfgCuotas" value="3">
+      <div class="config-card">
+        <div class="config-head">
+          <div class="config-title">
+            <div class="config-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M4 7h16M7 4v6M17 4v6M5.5 12.5h5v5h-5v-5ZM13.5 12.5h5v5h-5v-5Z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div>
+              <strong>Configuración de la venta</strong>
+              <span>Simula los Page Items configurados en la Dynamic Action</span>
+            </div>
+          </div>
+          <span class="apex-badge">ORACLE APEX</span>
         </div>
-        <div class="field">
-          <label for="cfgPlan">Plan</label>
-          <input type="text" id="cfgPlan" value="1">
+
+        <div class="config-body">
+          <div class="field-grid">
+            <div class="field">
+              <label for="cfgIp">IP del POS <small>LAN local</small></label>
+              <input type="text" id="cfgIp" value="127.0.0.1" autocomplete="off">
+            </div>
+            <div class="field">
+              <label for="cfgPuerto">Puerto <small>HTTP</small></label>
+              <input type="text" id="cfgPuerto" value="3000" inputmode="numeric" autocomplete="off">
+            </div>
+
+            <div class="field span-2">
+              <label for="cfgMedio">Medio de pago <small>Código enviado al plugin</small></label>
+              <div class="control-wrap">
+                <select id="cfgMedio" onchange="onMedioChange()">
+                  <option value="TARJETA_CONTADO" selected>Tarjeta crédito contado · TARJETA_CONTADO</option>
+                  <option value="TARJETA_CUOTAS">Tarjeta crédito cuotas · TARJETA_CUOTAS</option>
+                  <option value="TARJETA_DEBITO">Tarjeta débito · TARJETA_DEBITO</option>
+                  <option value="TARJETA_CREDITO">Tarjeta crédito · TARJETA_CREDITO</option>
+                  <option value="QR">Pago QR · QR</option>
+                  <option value="QR_PIX">Pago PIX · QR_PIX</option>
+                  <option value="EXTRACCION_QR">Extracción QR · EXTRACCION_QR</option>
+                  <option value="CANJE">Canje de puntos · CANJE</option>
+                  <option value="CANJE_QR">Canje QR · CANJE_QR</option>
+                  <option value="BILLETERA">Billetera electrónica · BILLETERA</option>
+                </select>
+                <span class="select-arrow"></span>
+              </div>
+            </div>
+
+            <div class="field span-2">
+              <label for="cfgMonto">Monto de la operación <small>Sin separadores al POS</small></label>
+              <div class="amount-wrap"><input type="text" id="cfgMonto" value="150.000" inputmode="numeric" oninput="formatearMonto(this)" autocomplete="off"></div>
+            </div>
+
+            <div class="conditional" id="condCuotas">
+              <div class="field-grid">
+                <div class="field">
+                  <label for="cfgCuotas">Cuotas</label>
+                  <input type="text" id="cfgCuotas" value="3" inputmode="numeric">
+                </div>
+                <div class="field">
+                  <label for="cfgPlan">Plan</label>
+                  <input type="text" id="cfgPlan" value="1" inputmode="numeric">
+                </div>
+              </div>
+            </div>
+
+            <div class="conditional" id="condQr">
+              <div class="field">
+                <label for="cfgMontoVuelto">Monto vuelto <small>Opcional · Gs.</small></label>
+                <div class="amount-wrap"><input type="text" id="cfgMontoVuelto" value="0" inputmode="numeric" oninput="formatearMonto(this)"></div>
+              </div>
+            </div>
+
+            <div class="conditional" id="condPix">
+              <div class="field-grid">
+                <div class="field">
+                  <label for="cfgPixCpf">CPF del pagador</label>
+                  <input type="text" id="cfgPixCpf" value="123.456.789-00">
+                </div>
+                <div class="field">
+                  <label for="cfgPixTelefono">Teléfono del pagador</label>
+                  <input type="text" id="cfgPixTelefono" value="+55 11 91234-5678">
+                </div>
+              </div>
+            </div>
+
+            <div class="conditional" id="condBilletera">
+              <div class="field-grid">
+                <div class="field">
+                  <label for="cfgBilletera">Billetera</label>
+                  <div class="control-wrap">
+                    <select id="cfgBilletera">
+                      <option value="ZIM">Zimple · ZIM</option>
+                      <option value="WPJ">Paraguayo Japonesa · WPJ</option>
+                      <option value="VBV">Visión Banco · VBV</option>
+                      <option value="BPI">Personal–Itaú · BPI</option>
+                      <option value="BBF">Billetera Viru · BBF</option>
+                    </select>
+                    <span class="select-arrow"></span>
+                  </div>
+                </div>
+                <div class="field">
+                  <label for="cfgCuenta">Nro. de cuenta</label>
+                  <input type="text" id="cfgCuenta" value="123456">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <button id="btnCobrar" onclick="dispararCobro()">
+            <svg viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5" width="17" height="14" rx="2.5" stroke="currentColor" stroke-width="1.8"/><path d="M3.5 9h17M7 15h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            Cobrar con POS Bancard
+          </button>
+        </div>
+
+        <div class="result-panel">
+          <div class="result-head">
+            <strong>Items destino del plugin</strong>
+            <span class="result-status" id="resultStatus"><i></i> Esperando operación</span>
+          </div>
+          <div class="result-grid">
+            <div class="result-item"><b>Nro. boleta / autorización</b><span id="out_boleta">—</span></div>
+            <div class="result-item"><b>Issuer ID crudo</b><span id="out_issuer">—</span></div>
+            <div class="result-item"><b>Monto cobrado</b><span id="out_monto">—</span></div>
+            <div class="result-item"><b>Fecha / hora ISO 8601</b><span id="out_fecha">—</span></div>
+            <div class="result-item span-2"><b>Nro. de referencia</b><span id="out_ref">—</span></div>
+          </div>
         </div>
       </div>
-    </div>
+    </section>
 
-    <!-- Monto vuelto: QR -->
-    <div class="conditional" id="condQr" style="display:none">
-      <div class="field">
-        <label for="cfgMontoVuelto">Monto Vuelto (opcional, Gs.)</label>
-        <input type="text" id="cfgMontoVuelto" value="0" oninput="formatearMonto(this)">
+    <section class="terminal-stage" aria-label="Terminal POS Bancard simulado">
+      <div class="terminal-caption">
+        <strong>Terminal Bancard SmartPOS</strong>
+        <span>Representación visual conectada al simulador</span>
       </div>
-    </div>
 
-    <!-- QR PIX -->
-    <div class="conditional" id="condPix" style="display:none">
-      <div class="field">
-        <label for="cfgPixCpf">CPF del pagador</label>
-        <input type="text" id="cfgPixCpf" value="123.456.789-00">
+      <div class="connection-pill" id="connectionPill"><i></i><span id="connectionText">POS en espera</span></div>
+
+      <div class="pos-device">
+        <div class="pos-printer">
+          <div class="nfc-mark" aria-hidden="true">
+            <svg viewBox="0 0 64 48" fill="none"><path d="M18 34c5-4 5-16 0-20M26 38c8-7 8-21 0-28M34 42c11-10 11-29 0-38" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><path d="M44 17h8a5 5 0 0 1 5 5v10a5 5 0 0 1-5 5h-8" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>
+          </div>
+          <div class="paper-slot"></div>
+          <div class="printer-logo">BANCARD</div>
+        </div>
+        <div class="side-ridges"></div>
+
+        <div class="pos-body-shell">
+          <div class="device-camera"></div>
+          <div class="device-sensor"></div>
+
+          <div class="screen-bezel">
+            <div class="pos-screen">
+              <div class="pos-statusbar">
+                <span id="posClock">08:45</span>
+                <span class="status-icons"><span class="signal"></span><span>4G</span><span class="battery"></span></span>
+              </div>
+              <div class="pos-header">
+                <span class="pos-menu"><i></i><i></i><i></i></span>
+                <span class="bancard-wordmark">Bancard</span>
+                <span class="pos-header-chevron"></span>
+              </div>
+              <div class="pos-meta"><span>V2.2130</span><span id="posSerial">92200-72633</span></div>
+              <div class="pos-body" id="posBody"></div>
+              <div class="android-nav"><span class="nav-triangle"></span><span class="nav-circle"></span><span class="nav-square"></span></div>
+            </div>
+          </div>
+          <div class="device-footer">Red INFONET</div>
+        </div>
+
+        <div class="event-card">
+          <div class="event-card-head"><strong>Flujo en tiempo real</strong><span id="flowStatus">LISTO</span></div>
+          <div class="event-line active" id="flowEco"><span class="event-dot"></span><span>Verificar conectividad <code>/pos/eco</code></span></div>
+          <div class="event-line" id="flowVenta"><span class="event-dot"></span><span>Enviar operación al terminal</span></div>
+          <div class="event-line" id="flowResultado"><span class="event-dot"></span><span>Recibir y mapear resultado</span></div>
+        </div>
       </div>
-      <div class="field">
-        <label for="cfgPixTelefono">Teléfono del pagador</label>
-        <input type="text" id="cfgPixTelefono" value="+55 11 91234-5678">
-      </div>
-    </div>
 
-    <!-- Billetera -->
-    <div class="conditional" id="condBilletera" style="display:none">
-      <div class="field">
-        <label for="cfgBilletera">Billetera</label>
-        <select id="cfgBilletera">
-          <option value="ZIM">ZIM &ndash; Zimple</option>
-          <option value="WPJ">WPJ &ndash; Paraguayo Japonesa</option>
-          <option value="VBV">VBV &ndash; Visión Banco</option>
-          <option value="BPI">BPI &ndash; Personal-Itaú</option>
-          <option value="BBF">BBF &ndash; Billetera Viru</option>
-        </select>
-      </div>
-      <div class="field">
-        <label for="cfgCuenta">Nro. de Cuenta</label>
-        <input type="text" id="cfgCuenta" value="123456">
-      </div>
-    </div>
-
-    <button id="btnCobrar" onclick="dispararCobro()">Cobrar con POS</button>
-
-    <div class="resultado">
-      <h3>Resultado (items destino del plugin)</h3>
-      <div class="row"><b>Nro Boleta / Autorización</b><span id="out_boleta">&mdash;</span></div>
-      <div class="row"><b>Issuer ID (crudo)</b><span id="out_issuer">&mdash;</span></div>
-      <div class="row"><b>Monto Cobrado</b><span id="out_monto">&mdash;</span></div>
-      <div class="row"><b>Fecha/Hora (ISO 8601)</b><span id="out_fecha">&mdash;</span></div>
-      <div class="row"><b>Nro de Referencia</b><span id="out_ref">&mdash;</span></div>
-    </div>
-  </div>
-
-  <!-- ============ PANEL DERECHO: TERMINAL POS (interactivo) ============ -->
-  <div class="pos-wrap">
-    <h2>Terminal POS (simulado)</h2>
-    <div class="pos-shell">
-      <div class="pos-screen">
-        <div class="pos-header"><span>&#9776; Bancard</span><span class="menu">&#8964;</span></div>
-        <div class="pos-subheader"><span>V2.6.4.1</span><span id="posSerial">P12-4147</span></div>
-        <div class="pos-body" id="posBody"></div>
-      </div>
-    </div>
-    <p class="pos-footer-hint">Este panel refleja en vivo, paso a paso, las llamadas reales que el plugin hace al simulador (<code>/pos/eco</code>, <code>/pos/venta-*</code>, <code>/pos/descuento</code>) &mdash; no es una animación pregrabada.</p>
-  </div>
-
+      <p class="terminal-note">El panel sigue las llamadas reales de <code>pos_bancard_cliente.js</code> al simulador local; no utiliza una animación con tiempos fijos.</p>
+    </section>
+  </main>
 </div>
 
-<!-- items ocultos que consume el plugin, igual que en una pagina APEX real -->
+<!-- Page Items ocultos: misma interfaz que consume el plugin dentro de APEX -->
 <input id="P_IP" type="hidden" value="127.0.0.1">
 <input id="P_PUERTO" type="hidden" value="3000">
 <input id="P_MEDIO_PAGO" type="hidden" value="TARJETA_CONTADO">
@@ -236,10 +1235,6 @@
 <input id="P_RESULTADO_JSON" type="hidden" value="">
 
 <script>
-  // ---------------------------------------------------------------
-  // Shim de apex.item / apex.message, igual que dentro de una pagina
-  // APEX real -- el plugin no sabe que esto no es APEX de verdad.
-  // ---------------------------------------------------------------
   window.apex = {
     item: function (id) {
       var el = document.getElementById(id);
@@ -247,8 +1242,15 @@
         getValue: function () { return el.value; },
         setValue: function (v) {
           el.value = v;
-          var out = document.getElementById('out_' + { P_NRO_BOLETA:'boleta', P_ISSUER_ID:'issuer', P_MONTO_COBRADO:'monto', P_FECHA_HORA:'fecha', P_FACTURA_REF:'ref' }[id]);
-          if (out) out.textContent = v;
+          var outputMap = {
+            P_NRO_BOLETA: 'boleta',
+            P_ISSUER_ID: 'issuer',
+            P_MONTO_COBRADO: 'monto',
+            P_FECHA_HORA: 'fecha',
+            P_FACTURA_REF: 'ref'
+          };
+          var out = document.getElementById('out_' + outputMap[id]);
+          if (out) out.textContent = v || '—';
         }
       };
     },
@@ -258,11 +1260,6 @@
     }
   };
 
-  // ---------------------------------------------------------------
-  // Formulario izquierdo: mostrar/ocultar campos segun Medio de Pago,
-  // formatear Monto con separador de miles al tipear (igual que un
-  // Number Field de APEX con mascara 999G999G999G999G999G999G990).
-  // ---------------------------------------------------------------
   function formatearMonto(input) {
     var soloDigitos = input.value.replace(/\D/g, '');
     input.value = soloDigitos ? Number(soloDigitos).toLocaleString('es-PY') : '';
@@ -306,6 +1303,38 @@
     return '';
   }
 
+  function setResultStatus(text, state) {
+    var el = document.getElementById('resultStatus');
+    el.lastChild.nodeValue = ' ' + text;
+    var dot = el.querySelector('i');
+    dot.style.background = state === 'ok' ? 'var(--success)' : state === 'error' ? 'var(--danger)' : state === 'busy' ? 'var(--warning)' : '#a7b9c6';
+  }
+
+  function setConnection(text, state) {
+    var pill = document.getElementById('connectionPill');
+    pill.className = 'connection-pill' + (state ? ' ' + state : '');
+    document.getElementById('connectionText').textContent = text;
+  }
+
+  function resetFlow() {
+    ['flowEco', 'flowVenta', 'flowResultado'].forEach(function (id) {
+      document.getElementById(id).className = 'event-line';
+    });
+    document.getElementById('flowEco').className = 'event-line active';
+    document.getElementById('flowStatus').textContent = 'LISTO';
+  }
+
+  function flowStep(step, status) {
+    var order = ['flowEco', 'flowVenta', 'flowResultado'];
+    order.forEach(function (id, index) {
+      var el = document.getElementById(id);
+      if (index < step) el.className = 'event-line done';
+      else if (index === step) el.className = 'event-line active';
+      else el.className = 'event-line';
+    });
+    document.getElementById('flowStatus').textContent = status;
+  }
+
   function dispararCobro() {
     var medio = document.getElementById('cfgMedio').value;
     var monto = numeroPlano(document.getElementById('cfgMonto').value);
@@ -316,12 +1345,13 @@
     apex.item('P_MONTO').setValue(monto);
     apex.item('P_OPCIONES').setValue(armarOpciones(medio));
 
-    // limpiar resultado anterior
     ['out_boleta', 'out_issuer', 'out_monto', 'out_fecha', 'out_ref'].forEach(function (id) {
       document.getElementById(id).textContent = '—';
     });
 
     document.getElementById('btnCobrar').disabled = true;
+    setResultStatus('Procesando operación', 'busy');
+    resetFlow();
     posSetIdle();
 
     bancardPosCliente.execute({
@@ -334,30 +1364,33 @@
     });
   }
 
-  // ---------------------------------------------------------------
-  // Terminal POS simulado (panel derecho): se maneja envolviendo
-  // window.fetch para observar, en vivo, las llamadas reales que el
-  // plugin hace al simulador -- no es una animacion con tiempos fijos,
-  // sigue el timing real (incluido --delay-cliente del simulador).
-  // ---------------------------------------------------------------
   var posBody = document.getElementById('posBody');
   var posSerial = document.getElementById('posSerial');
   var posResetTimer = null;
 
-  function posRender(html) {
-    posBody.innerHTML = html;
+  function posRender(html) { posBody.innerHTML = html; }
+
+  function posMethods() {
+    return '<div class="pos-methods">' +
+      '<span class="method-chip">VISA</span><span class="method-chip">MC</span><span class="method-chip">AMEX</span><span class="method-chip">QR</span><span class="method-chip">PIX</span>' +
+    '</div>';
   }
 
   function posSetIdle() {
     clearTimeout(posResetTimer);
-    posSerial.textContent = 'P12-4147';
+    posSerial.textContent = '92200-72633';
+    setConnection('POS en espera', 'online');
+    setResultStatus('Esperando operación', 'idle');
+    resetFlow();
     posRender(
-      '<div class="pos-icon">&#128179;</div>' +
-      '<div class="pos-instruction">Bancard</div>' +
-      '<div class="pos-sub">Esperando operación&hellip;</div>' +
+      posMethods() +
+      '<div class="pos-visual"><div class="card-art a"></div><div class="card-art b"></div><div class="contactless-rings"></div></div>' +
+      '<div class="pos-instruction">Ingresar monto</div>' +
+      '<div class="pos-sub">El monto se envía desde la página de cobro de Oracle APEX</div>' +
       '<div class="pos-keypad">' +
-        ['1','2','3','4','5','6','7','8','9','&larr;','0','000'].map(function (k) {
-          return '<div class="pos-key' + (k === '&larr;' ? ' alt' : '') + '">' + k + '</div>';
+        ['1','2','3','4','5','6','7','8','9','×','0','000'].map(function (key) {
+          var type = key === '×' ? ' cancel' : '';
+          return '<div class="pos-key' + type + '">' + key + '</div>';
         }).join('') +
       '</div>'
     );
@@ -369,25 +1402,32 @@
   }
 
   function posSetConectando() {
+    setConnection('Conectando al POS', 'busy');
+    setResultStatus('Verificando terminal', 'busy');
+    flowStep(0, 'CONECTANDO');
     posRender(
       posMontoPill() +
-      '<div class="pos-icon spin">&#8635;</div>' +
-      '<div class="pos-instruction">Conectando&hellip;</div>' +
-      '<div class="pos-sub">Verificando terminal (eco)</div>'
+      '<div class="pos-icon spin"><div class="spinner-ring"></div></div>' +
+      '<div class="pos-instruction">Conectando…</div>' +
+      '<div class="pos-sub">Verificando disponibilidad mediante <code>/pos/eco</code></div>'
     );
   }
 
   var ICONOS_MEDIO = {
-    card: { icon: '&#128179;', texto: 'Pase o inserte la tarjeta', sub: 'Siga las instrucciones en pantalla' },
-    qr: { icon: '&#9638;', texto: 'Escanee el código QR', sub: 'Use la app de su banco o billetera' },
-    billetera: { icon: '&#128241;', texto: 'Confirme el pago', sub: 'Apruebe la operación en su billetera electrónica' },
-    canje: { icon: '&#127903;', texto: 'Presente su tarjeta de puntos', sub: 'Canje de puntos de lealtad' }
+    card: { icon: '💳', texto: 'Pase, inserte o acerque la tarjeta', sub: 'Siga las instrucciones indicadas en el terminal' },
+    qr: { icon: '▦', texto: 'Escanee el código QR', sub: 'Utilice la aplicación de su banco o billetera' },
+    billetera: { icon: '▣', texto: 'Confirme el pago', sub: 'Apruebe la operación desde su billetera electrónica' },
+    canje: { icon: '★', texto: 'Presente su tarjeta de puntos', sub: 'Procesando canje de beneficios' }
   };
 
   function posSetEsperando(tipo) {
     var info = ICONOS_MEDIO[tipo] || ICONOS_MEDIO.card;
+    setConnection('Esperando al cliente', 'busy');
+    setResultStatus('Esperando confirmación', 'busy');
+    flowStep(1, 'EN TERMINAL');
     posRender(
       posMontoPill() +
+      posMethods() +
       '<div class="pos-icon">' + info.icon + '</div>' +
       '<div class="pos-instruction">' + info.texto + '</div>' +
       '<div class="pos-sub">' + info.sub + '</div>'
@@ -395,11 +1435,14 @@
   }
 
   function posSetProcesando() {
+    setConnection('Procesando pago', 'busy');
+    setResultStatus('Procesando respuesta', 'busy');
+    flowStep(2, 'PROCESANDO');
     posRender(
       posMontoPill() +
-      '<div class="pos-icon spin">&#8635;</div>' +
-      '<div class="pos-instruction">Procesando&hellip;</div>' +
-      '<div class="pos-sub">No retire la tarjeta</div>'
+      '<div class="pos-icon spin"><div class="spinner-ring"></div></div>' +
+      '<div class="pos-instruction">Procesando…</div>' +
+      '<div class="pos-sub">No retire la tarjeta ni cierre la página</div>'
     );
   }
 
@@ -409,30 +1452,40 @@
       body.nroBoleta ? ('Boleta ' + body.nroBoleta) : '',
       body.codigoAutorizacion ? ('Aut. ' + body.codigoAutorizacion) : ''
     ].filter(Boolean).join('<br>');
+    setConnection('Operación aprobada', 'online');
+    setResultStatus('Cobro aprobado', 'ok');
+    flowStep(3, 'APROBADA');
+    ['flowEco', 'flowVenta', 'flowResultado'].forEach(function (id) { document.getElementById(id).className = 'event-line done'; });
     posRender(
       posMontoPill() +
-      '<div class="pos-icon pos-status-ok">&#10003;</div>' +
-      '<div class="pos-instruction pos-status-ok">APROBADA</div>' +
+      '<div class="approval-mark">✓</div>' +
+      '<div class="pos-instruction pos-status-ok">OPERACIÓN APROBADA</div>' +
       '<div class="pos-details">' + detalle + '</div>'
     );
     posScheduleReset();
   }
 
   function posSetRechazada(mensaje) {
+    setConnection('Operación rechazada', 'error');
+    setResultStatus('Cobro rechazado', 'error');
+    document.getElementById('flowStatus').textContent = 'RECHAZADA';
     posRender(
       posMontoPill() +
-      '<div class="pos-icon pos-status-err">&#10007;</div>' +
-      '<div class="pos-instruction pos-status-err">RECHAZADA</div>' +
-      '<div class="pos-sub">' + (mensaje || 'Operación rechazada') + '</div>'
+      '<div class="error-mark">×</div>' +
+      '<div class="pos-instruction pos-status-err">OPERACIÓN RECHAZADA</div>' +
+      '<div class="pos-sub">' + (mensaje || 'La operación fue rechazada por el terminal') + '</div>'
     );
     posScheduleReset();
   }
 
   function posSetSinRespuesta() {
+    setConnection('POS sin respuesta', 'error');
+    setResultStatus('No se pudo conectar', 'error');
+    document.getElementById('flowStatus').textContent = 'SIN RESPUESTA';
     posRender(
-      '<div class="pos-icon pos-status-err">&#9888;</div>' +
-      '<div class="pos-instruction pos-status-err">Sin respuesta</div>' +
-      '<div class="pos-sub">El terminal no respondió a tiempo</div>'
+      '<div class="error-mark">!</div>' +
+      '<div class="pos-instruction pos-status-err">SIN RESPUESTA</div>' +
+      '<div class="pos-sub">Verifique IP, puerto y permisos de red local del navegador</div>'
     );
     posScheduleReset();
   }
@@ -440,7 +1493,7 @@
   function posScheduleReset() {
     document.getElementById('btnCobrar').disabled = false;
     clearTimeout(posResetTimer);
-    posResetTimer = setTimeout(posSetIdle, 4500);
+    posResetTimer = setTimeout(posSetIdle, 5200);
   }
 
   function faseDeRuta(pathname) {
@@ -485,7 +1538,14 @@
     });
   };
 
+  function updateClock() {
+    var now = new Date();
+    document.getElementById('posClock').textContent = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+  }
+
   onMedioChange();
+  updateClock();
+  setInterval(updateClock, 30000);
   posSetIdle();
 </script>
 </body>
