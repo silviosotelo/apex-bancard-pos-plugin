@@ -84,10 +84,8 @@ apex-bancard-pos-plugin/
 │   ├── pos_simulator.py
 │   └── README.md
 ├── docs/
-│   ├── assets/
-│   │   ├── demo-preview.svg
-│   │   └── linkedin-cover.svg
-│   └── linkedin-post.md
+│   └── assets/
+│       └── demo-preview.svg
 ├── LICENSE
 └── README.md
 ```
@@ -300,17 +298,6 @@ Este plugin inicia la comunicación con el terminal y expone su resultado a la a
 - protección de datos sensibles.
 
 No almacenes PAN, CVV, PIN ni datos de tarjeta que no sean necesarios para la operación y que no estén expresamente permitidos por el protocolo y las obligaciones aplicables.
-
-## Recursos para publicación
-
-La portada para LinkedIn y el texto de publicación están incluidos en el repositorio:
-
-<p align="center">
-  <img src="docs/assets/linkedin-cover.svg" alt="Portada de LinkedIn del plugin Oracle APEX Bancard POS" width="520">
-</p>
-
-- [`docs/assets/linkedin-cover.svg`](docs/assets/linkedin-cover.svg)
-- [`docs/linkedin-post.md`](docs/linkedin-post.md)
 
 ## Contribuciones
 
