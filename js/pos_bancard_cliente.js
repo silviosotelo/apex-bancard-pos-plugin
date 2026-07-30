@@ -12,7 +12,18 @@ window.bancardPosCliente = (function () {
     var timer = setTimeout(function () { controller.abort(); }, pTimeoutMs);
     return fetch(pUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      // Content-Type: 'text/plain', NO 'application/json' -- a proposito.
+      // 'application/json' hace que el navegador considere esto un pedido
+      // "no simple" y mande un preflight OPTIONS antes del POST real
+      // (regla CORS). Terminales POS reales (probado contra un SmartPOS
+      // Bancard fisico) no manejan OPTIONS y cortan la conexion sin
+      // responder nada (net::ERR_EMPTY_RESPONSE) -- ni siquiera llega a
+      // rechazar el pedido, el navegador nunca manda el POST real. Con
+      // 'text/plain' el pedido entra en la lista de "CORS-safelisted"
+      // (junto con application/x-www-form-urlencoded y multipart/form-data)
+      // y el navegador manda el POST directo, sin preflight -- el terminal
+      // igual lee el body como JSON, no valida el header.
+      headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify(pBody),
       signal: controller.signal
     }).then(function (response) {
