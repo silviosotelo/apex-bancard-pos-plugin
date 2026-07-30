@@ -253,9 +253,9 @@ La demo usa el mismo archivo `pos_bancard_cliente.js` que utiliza el plugin y ob
 
 ## Permisos del navegador
 
-El terminal real puede exponer HTTP plano dentro de la red local y no incluir headers CORS. Cuando APEX se sirve por HTTPS, el navegador puede bloquear la solicitud.
+El terminal real expone HTTP plano dentro de la red local y **no incluye headers CORS en sus respuestas** (confirmado tanto contra hardware real como en la documentación oficial del protocolo — ningún endpoint declara ni valida un header propio). Esto genera dos restricciones de navegador **distintas**, y hay que resolver las dos:
 
-La opción preferida es habilitar permisos únicamente para el sitio de cobro:
+**1. Acceso a la red local / contenido mixto** — si APEX se sirve por HTTPS, o el navegador aplica Private Network Access, la solicitud puede bloquearse antes de salir. Se resuelve por sitio:
 
 1. Abrir la página de APEX.
 2. Pulsar el candado o icono de configuración del sitio.
@@ -263,14 +263,21 @@ La opción preferida es habilitar permisos únicamente para el sitio de cobro:
 4. Habilitar **Acceso a la red local**.
 5. Habilitar **Contenido no seguro** cuando el navegador lo requiera.
 
+**2. CORS en la respuesta** — esta es la parte que **ningún permiso de sitio resuelve**. El navegador manda igual la petición (el terminal la recibe y la procesa), pero como la respuesta no trae `Access-Control-Allow-Origin`, el navegador le prohíbe al JavaScript leerla — el `fetch()` termina en error aunque la operación se haya ejecutado en el terminal. Esto pasa siempre en un pedido cross-origin, no depende de si hubo preflight o no, y es una restricción de diseño del navegador que ningún permiso del sitio puede desactivar. Dos formas reales de resolverlo:
+
+- **Extensión "Allow CORS" / "CORS Unblock"** en la máquina de cobro: instalarla, **activarla explícitamente** (suelen venir apagadas por defecto), probar, y **apagarla cuando no se esté cobrando** — mientras está activa modifica el comportamiento CORS de *todos* los sitios que visite esa máquina, no solo el del terminal.
+- **Proxy local** (alternativa más robusta para varios puestos de cobro, no implementada todavía en este repo): un servicio chico en `localhost` que reenvíe la petición al terminal real y agregue el header CORS faltante en la respuesta — el navegador solo vería un pedido a `localhost`, sin restricción cross-origin real, sin depender de una extensión instalada y activa en cada máquina.
+
 > [!WARNING]
-> No habilites políticas globales del navegador ni extensiones CORS en equipos que no estén controlados. Limitá el permiso al dominio exacto de la aplicación APEX y a las máquinas destinadas al cobro.
+> Cualquiera de las dos vías amplía lo que el navegador de esa máquina puede hacer. Limitá el alcance: extensión solo activa durante el cobro, o proxy escuchando solo en `localhost` y accesible solo desde esa misma máquina.
 
 ## Troubleshooting
 
 | Síntoma | Revisión recomendada |
 |---|---|
-| `Failed to fetch` contra el POS real | Permisos de red local, contenido mixto, IP y puerto |
+| `net::ERR_EMPTY_RESPONSE` contra el POS real | Preflight CORS — confirmar que el plugin usa `Content-Type: text/plain`, no `application/json` (el terminal real no responde `OPTIONS`) |
+| Consola: `blocked by CORS policy: No 'Access-Control-Allow-Origin' header...` | El pedido llegó y el terminal lo procesó, pero el navegador bloqueó la lectura de la respuesta — activar la extensión CORS o el proxy local, no es un problema de IP/puerto |
+| `Failed to fetch` / mixed content contra el POS real | Permisos de red local y contenido mixto del sitio (ver "Permisos del navegador") |
 | `Failed to fetch` contra el simulador | Proceso Python detenido o puerto incorrecto |
 | Timeout durante el pago | Terminal apagado o demora superior al timeout |
 | Items vacíos | Revisar Items to Submit / Items to Return |
@@ -281,7 +288,8 @@ La opción preferida es habilitar permisos únicamente para el sitio de cobro:
 
 - Oracle APEX 20.2: desarrollado y probado.
 - Oracle APEX 24.2: exportado, importado y verificado en otra instancia.
-- Navegadores Chromium: requieren la configuración de acceso a red local según la política de seguridad aplicada.
+- Terminal físico Bancard SmartPOS: protocolo verificado end-to-end contra hardware real (`eco` → `venta-ux` → `descuento`), respuesta idéntica a la documentada.
+- Navegadores Chromium: requieren configuración de red local/contenido mixto **y** una vía para CORS en la respuesta (extensión o proxy local) — ver "Permisos del navegador".
 - Python 3: necesario únicamente para el simulador.
 
 ## Seguridad y alcance

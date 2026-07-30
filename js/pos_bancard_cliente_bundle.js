@@ -42,9 +42,11 @@
         throw new Error('El POS no respondio dentro del tiempo de espera (' + pTimeoutMs + 'ms).');
       }
       throw new Error('No se pudo conectar al POS (' + pUrl + '): ' + error.message
-        + '. Si el navegador bloqueo el pedido (mixed content / red local), en esta maquina: '
-        + 'candado de la barra de direcciones -> Configuracion de sitios -> habilitar '
-        + '"Red local" y "Contenido no seguro" para este sitio.');
+        + '. Revisar en esta maquina: (1) candado de la barra de direcciones -> '
+        + 'Configuracion de sitios -> habilitar "Red local" y "Contenido no seguro"; '
+        + '(2) si eso no alcanza (el terminal real no manda headers CORS en la '
+        + 'respuesta, ningun permiso de sitio soluciona esto), activar una extension '
+        + 'tipo "Allow CORS" -- apagarla cuando no se este cobrando.');
     });
   }
 

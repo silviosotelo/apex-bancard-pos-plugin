@@ -244,15 +244,15 @@
   </div>
 
   <div class="callout warn">
-    <strong>Requisito obligatorio del navegador (solo contra un terminal real).</strong> El terminal Bancard habla HTTP plano y no manda headers CORS. Si la app se sirve por HTTPS, el navegador bloquea el <code>fetch()</code> salvo que se habilite el sitio, una única vez por máquina de cobro. <strong>No hace falta contra el simulador incluido</strong> (sección 5): ya responde los headers CORS correctos.
+    <strong>Requisito obligatorio del navegador (solo contra un terminal real).</strong> El terminal Bancard habla HTTP plano y <strong>no manda headers CORS en sus respuestas</strong> &mdash; confirmado contra hardware real y contra la documentación oficial del protocolo (ningún endpoint declara ni valida un header propio). Esto genera <strong>dos</strong> restricciones de navegador distintas, y hay que resolver las dos. <strong>No hace falta nada de esto contra el simulador incluido</strong> (sección 5): ya responde los headers CORS correctos.
   </div>
 
   <div class="callout">
-    <strong>Recomendado &mdash; permiso por sitio:</strong> click en el candado de la barra de direcciones &rarr; <strong>Configuración de sitios</strong> &rarr; habilitar <strong>"Red local"</strong> y <strong>"Contenido no seguro"</strong> para ese sitio. Más seguro que las alternativas de abajo porque el permiso queda acotado a ese sitio puntual, no a todo el navegador.
+    <strong>1. Acceso a red local / contenido mixto</strong> &mdash; si APEX se sirve por HTTPS, la solicitud puede bloquearse antes de salir. Click en el candado de la barra de direcciones &rarr; <strong>Configuración de sitios</strong> &rarr; habilitar <strong>"Red local"</strong> y <strong>"Contenido no seguro"</strong> para ese sitio.
   </div>
 
-  <div class="callout warn">
-    <strong>Alternativa</strong> (si esa opción no aparece en tu versión de Chrome): (1) deshabilitar <code>chrome://flags/#block-insecure-private-network-requests</code> (afecta a <em>todos</em> los sitios), o (2) instalar y activar una extensión tipo "Allow CORS" (afecta a cualquier pestaña mientras esté activa).
+  <div class="callout danger">
+    <strong>2. CORS en la respuesta</strong> &mdash; esta parte <strong>ningún permiso de sitio la resuelve</strong>. El navegador manda la petición igual (el terminal la recibe y la procesa), pero al no traer la respuesta el header <code>Access-Control-Allow-Origin</code>, el navegador le prohíbe al JavaScript leerla &mdash; el <code>fetch()</code> falla aunque la operación ya se haya ejecutado en el terminal. Pasa siempre en un pedido cross-origin, con o sin preflight; ninguna configuración de sitio lo desactiva. Dos soluciones reales: instalar y <strong>activar explícitamente</strong> una extensión tipo "Allow CORS" (apagarla cuando no se esté cobrando &mdash; mientras está activa afecta a <em>todos</em> los sitios que visite esa máquina), o un proxy local en esa misma máquina que agregue el header faltante (más robusto para varios puestos de cobro, no incluido todavía en este repo).
   </div>
 </div>
 
@@ -429,7 +429,9 @@ apex.item('MI_ITEM_MARCA_TARJETA').setValue(marcaPropia);
 
   <table>
     <tr><th>Síntoma</th><th>Causa probable</th></tr>
-    <tr><td><code>Failed to fetch</code> contra un terminal <strong>real</strong></td><td>Falta habilitar "Red local" + "Contenido no seguro" para el sitio (candado &rarr; Configuración de sitios) en esa máquina.</td></tr>
+    <tr><td><code>net::ERR_EMPTY_RESPONSE</code> contra un terminal <strong>real</strong></td><td>Preflight CORS &mdash; confirmar que el plugin usa <code>Content-Type: text/plain</code>, no <code>application/json</code> (el terminal no responde <code>OPTIONS</code>).</td></tr>
+    <tr><td>Consola: <code>blocked by CORS policy: No 'Access-Control-Allow-Origin' header...</code></td><td>El pedido llegó y el terminal lo procesó, pero el navegador bloqueó la lectura de la respuesta &mdash; activar la extensión CORS o el proxy local, no es un problema de IP/puerto.</td></tr>
+    <tr><td><code>Failed to fetch</code> / mixed content contra un terminal <strong>real</strong></td><td>Falta habilitar "Red local" + "Contenido no seguro" para el sitio (candado &rarr; Configuración de sitios) en esa máquina.</td></tr>
     <tr><td><code>Failed to fetch</code> contra el <strong>simulador</strong></td><td><code>--delay-cliente</code> muy cerca del timeout del plugin (90s) &mdash; bajar el rango del delay.</td></tr>
     <tr><td>"El POS no respondió dentro del tiempo de espera"</td><td>Terminal apagado, IP/puerto mal configurados, o (contra el simulador) salió el resultado aleatorio de timeout con <code>--random</code>.</td></tr>
     <tr><td>Items de configuración llegan vacíos a la acción del plugin</td><td>"Execute Server-side Code" (pieza 1) escrita con <code>g_x01</code>/<code>sys.htp.p</code> en vez de bind variables &mdash; ver sección 3. No tira error, simplemente no setea nada.</td></tr>

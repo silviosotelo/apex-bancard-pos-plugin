@@ -65,8 +65,11 @@ propio del plugin, no via CDN externo) para el loader durante el eco y
 durante la espera/lectura del pago. Requiere que el navegador de la
 sucursal tenga habilitados, para el sitio de la app (candado de la barra
 de direcciones -> Configuracion de sitios), los permisos "Red local" y
-"Contenido no seguro", porque el terminal Bancard es HTTP plano y no manda
-headers CORS. Compatible con APEX 20.1 en adelante.
+"Contenido no seguro". Contra un terminal real ademas hace falta una
+extension tipo "Allow CORS" activa (o un proxy local propio), porque el
+terminal no manda header Access-Control-Allow-Origin en la respuesta y
+ningun permiso de sitio resuelve eso -- ver seccion "Permisos del
+navegador" del README. Compatible con APEX 20.1 en adelante.
 ```
 
 Guardá el plugin antes de seguir — recién ahí queda con un ID real asignado.
